@@ -50,12 +50,12 @@ export const AppCreateBasicInfoForm: React.FC<AppCreateBasicInfoFormProps> = ({
     <form onSubmit={onSubmit} className="p-5 sm:p-7 flex flex-col gap-6 text-xs">
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold text-slate-800 flex items-center gap-1">
-          应用名称 <span className="text-rose-500 font-bold">*</span>
+          产品名称 <span className="text-rose-500 font-bold">*</span>
         </label>
         <input
           type="text"
           required
-          placeholder="例如：正管用、谛听预警"
+          placeholder="例如：信息通报、正管用、谛听预警"
           value={values.appName}
           onChange={(e) => onNameChange(e.target.value)}
           className={`w-full px-3.5 py-2.5 text-sm bg-white border rounded-lg focus:outline-none text-slate-800 transition-all font-medium placeholder:text-slate-400 ${
@@ -71,15 +71,15 @@ export const AppCreateBasicInfoForm: React.FC<AppCreateBasicInfoFormProps> = ({
             {errors.appName}
           </p>
         ) : (
-          <p className="text-[11px] text-slate-400">将作为应用列表与详情页的主标题。</p>
+          <p className="text-[11px] text-slate-400">将作为产品列表与控制台详情页的主标题。</p>
         )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold text-slate-800">应用描述</label>
+        <label className="text-xs font-bold text-slate-800">产品描述</label>
         <textarea
           rows={4}
-          placeholder="简要说明这个应用做什么"
+          placeholder="简要说明此产品的业务定位、核心功能及解决的业务问题..."
           value={values.description}
           onChange={(e) => onDescriptionChange(e.target.value)}
           className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none text-slate-800 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400 resize-y min-h-[96px]"
@@ -92,7 +92,7 @@ export const AppCreateBasicInfoForm: React.FC<AppCreateBasicInfoFormProps> = ({
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
             <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
-            <span>上传应用图标</span>
+            <span>上传产品头像 / 图标</span>
             <span className="text-rose-500 font-bold">*</span>
           </label>
           <span className="text-[11px] text-slate-400">JPG / PNG / GIF / SVG，小于 5MB</span>

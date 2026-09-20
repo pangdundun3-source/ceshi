@@ -33,6 +33,7 @@ import { UnifiedOrgRoleManageView } from './components/UnifiedOrgRoleManageView'
 import { UnifiedOrgPermissionDictView } from './components/UnifiedOrgPermissionDictView';
 import { UnifiedOrgUISettingsView } from './components/UnifiedOrgUISettingsView';
 import { UnifiedExtUserOrgListView } from './components/UnifiedExtUserOrgListView';
+import { UnifiedFrontendMenuManageView } from './components/UnifiedFrontendMenuManageView';
 import { InstructionFlowMTView } from './components/InstructionFlowMTView';
 import { MTCustomerOrgListView } from './components/MTCustomerOrgListView';
 import { MTOpenUserListView } from './components/MTOpenUserListView';

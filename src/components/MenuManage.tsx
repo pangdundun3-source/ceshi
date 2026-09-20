@@ -43,11 +43,202 @@ import {
   ExternalLink,
   Maximize2,
   HelpCircle,
-  X
+  X,
+  GripVertical,
+  Link2,
+  Unlink,
+  Layers,
+  MonitorSmartphone,
+  Monitor,
+  Server,
+  Smartphone,
+  Tablet,
+  Network,
+  MessageCircle,
+  ArrowRight,
+  Library
 } from 'lucide-react';
 // ==========================================
 // 1. 数据结构类型定义
 // ==========================================
+export interface AvailableComponentOption {
+  key: string;
+  title: string;
+  description: string;
+  kernel: string;
+  routePath?: string;
+  icon?: string;
+  displayedEndpoints?: Array<{
+    id: string;
+    name: string;
+    kind?: string;
+  }>;
+}
+
+export const getEndpointKindIcon = (kind?: string) => {
+  switch (kind) {
+    case 'admin_web': return Server;
+    case 'user_web': return Monitor;
+    case 'h5': return Smartphone;
+    case 'pad': return Tablet;
+    case 'intranet': return Network;
+    case 'wechat': return MessageCircle;
+    default: return Monitor;
+  }
+};
+
+export const getEndpointKindStyle = (kind?: string) => {
+  switch (kind) {
+    case 'admin_web': return 'bg-purple-50 text-purple-700 border-purple-200';
+    case 'user_web': return 'bg-blue-50 text-[#1e376b] border-blue-200';
+    case 'h5': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'pad': return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'intranet': return 'bg-slate-100 text-slate-700 border-slate-300';
+    case 'wechat': return 'bg-green-50 text-green-700 border-green-200';
+    default: return 'bg-slate-50 text-slate-700 border-slate-200';
+  }
+};
+
+export type ActionCategory = 'query' | 'create' | 'update' | 'delete' | 'export' | 'audit';
+
+export interface ComponentActionOption {
+  code: string;           // 动作操作编码，如 'query' | 'create' | 'update' | 'delete' | 'export' | 'audit'
+  name: string;           // 动作名称，如 '查询与明细浏览' | '新增录入'
+  category: ActionCategory;
+  categoryLabel: string;  // 查 / 增 / 改 / 删 / 导 / 审
+  description: string;    // 功能详细说明
+}
+
+export const ACTION_CATEGORY_STYLES: Record<ActionCategory, { pill: string; badge: string; activeBorder: string }> = {
+  create: {
+    pill: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    badge: 'bg-emerald-600 text-white',
+    activeBorder: 'border-emerald-300 bg-emerald-50/40 ring-1 ring-emerald-200/70',
+  },
+  delete: {
+    pill: 'bg-rose-50 text-rose-700 border-rose-200',
+    badge: 'bg-rose-600 text-white',
+    activeBorder: 'border-rose-300 bg-rose-50/40 ring-1 ring-rose-200/70',
+  },
+  update: {
+    pill: 'bg-amber-50 text-amber-700 border-amber-200',
+    badge: 'bg-amber-600 text-white',
+    activeBorder: 'border-amber-300 bg-amber-50/40 ring-1 ring-amber-200/70',
+  },
+  query: {
+    pill: 'bg-blue-50 text-blue-700 border-blue-200',
+    badge: 'bg-blue-600 text-white',
+    activeBorder: 'border-blue-300 bg-blue-50/40 ring-1 ring-blue-200/70',
+  },
+  export: {
+    pill: 'bg-purple-50 text-purple-700 border-purple-200',
+    badge: 'bg-purple-600 text-white',
+    activeBorder: 'border-purple-300 bg-purple-50/40 ring-1 ring-purple-200/70',
+  },
+  audit: {
+    pill: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    badge: 'bg-cyan-600 text-white',
+    activeBorder: 'border-cyan-300 bg-cyan-50/40 ring-1 ring-cyan-200/70',
+  },
+};
+
+export const getModuleAvailableActions = (moduleKey?: string): ComponentActionOption[] => {
+  if (!moduleKey) {
+    return [
+      { code: 'query', name: '数据查询浏览', category: 'query', categoryLabel: '查', description: '列表多维检索、分页过滤与明细穿透查看' },
+      { code: 'create', name: '新增记录录入', category: 'create', categoryLabel: '增', description: '创建业务数据、录入新记录与表单初始化' },
+      { code: 'update', name: '编辑修改更新', category: 'update', categoryLabel: '改', description: '修改已有记录参数、更新处理进度与状态' },
+      { code: 'delete', name: '记录删除移除', category: 'delete', categoryLabel: '删', description: '作废无效记录、移入回收站或彻底清除' },
+      { code: 'export', name: '报表数据导出', category: 'export', categoryLabel: '导', description: '批量导出列表数据至 Excel / PDF 台账' },
+      { code: 'audit', name: '业务审核流转', category: 'audit', categoryLabel: '审', description: '业务流转核验、状态审批复核与归档确认' },
+    ];
+  }
+
+  const key = moduleKey.toLowerCase();
+
+  // 1. 警情/监测/告警/态势类
+  if (key.includes('alert') || key.includes('warn') || key.includes('monitor') || key.includes('situation')) {
+    return [
+      { code: 'query', name: '警情检索与查看', category: 'query', categoryLabel: '查', description: '实时检索预警事件、查看警情详情与态势流' },
+      { code: 'create', name: '手动录入与补录', category: 'create', categoryLabel: '增', description: '手动创建告警事件、补充上报外部突发线索' },
+      { code: 'update', name: '研判改级与去向', category: 'update', categoryLabel: '改', description: '调整预警等级、编辑研判结论与分流指派' },
+      { code: 'delete', name: '误报作废与清理', category: 'delete', categoryLabel: '删', description: '标记并作废误报事件、清理失效警情记录' },
+      { code: 'export', name: '警情台账批量导出', category: 'export', categoryLabel: '导', description: '导出警情数据清单至 Excel 及预警通报简报' },
+      { code: 'audit', name: '处置签批与结案', category: 'audit', categoryLabel: '审', description: '对处置方案进行审批盖章、归档复核与结案' },
+    ];
+  }
+
+  // 2. 工单/任务/交办/调度类
+  if (key.includes('task') || key.includes('dispatch') || key.includes('instruction') || key.includes('flow')) {
+    return [
+      { code: 'query', name: '工单查询与轨迹', category: 'query', categoryLabel: '查', description: '检索交办工单列表、流转轨迹及经办明细' },
+      { code: 'create', name: '发起新建交办单', category: 'create', categoryLabel: '增', description: '下发协同指令、创建新工单并指定责任人' },
+      { code: 'update', name: '进度填报与改派', category: 'update', categoryLabel: '改', description: '填写处置进度反馈、申请延期或改派经办人' },
+      { code: 'delete', name: '撤销作废与删除', category: 'delete', categoryLabel: '删', description: '撤回误发工单、作废撤销任务或删除草稿' },
+      { code: 'export', name: '协同台账导出', category: 'export', categoryLabel: '导', description: '导出协同任务完成明细与部门考核统计表' },
+      { code: 'audit', name: '办结复核与验收', category: 'audit', categoryLabel: '审', description: '复核办结处置材料、质量验收与归档评价' },
+    ];
+  }
+
+  // 3. 报表/统计/分析类
+  if (key.includes('report') || key.includes('analysis') || key.includes('stat') || key.includes('chart')) {
+    return [
+      { code: 'query', name: '报表查询与多维下钻', category: 'query', categoryLabel: '查', description: '查询周期研判报表、多维统计指标与穿透下钻' },
+      { code: 'create', name: '新建报表与自定义', category: 'create', categoryLabel: '增', description: '创建新的周期分析报表、自定义统计口径' },
+      { code: 'update', name: '调整维度与指标', category: 'update', categoryLabel: '改', description: '编辑统计范围、调整加权算法与参数过滤' },
+      { code: 'delete', name: '过时报表归档废除', category: 'delete', categoryLabel: '删', description: '归档历史过时报表、删除草稿统计模版' },
+      { code: 'export', name: '多格式报表导出', category: 'export', categoryLabel: '导', description: '导出高保真 Excel 数据表与 PDF 汇报文档' },
+      { code: 'audit', name: '数据审核与发布', category: 'audit', categoryLabel: '审', description: '发布前进行数据核对、签批审查与发布授权' },
+    ];
+  }
+
+  // 4. 组织/人员/用户/群组类
+  if (key.includes('org') || key.includes('personnel') || key.includes('user') || key.includes('group')) {
+    return [
+      { code: 'query', name: '名录架构多维查询', category: 'query', categoryLabel: '查', description: '检索组织架构树、岗位层级与人员名录信息' },
+      { code: 'create', name: '新建节点与人员录入', category: 'create', categoryLabel: '增', description: '添加新部门节点、开通人员账号与设置岗位' },
+      { code: 'update', name: '信息变更与调岗维护', category: 'update', categoryLabel: '改', description: '修改部门信息、人员任职与上下级汇报关系' },
+      { code: 'delete', name: '离职清理与注销', category: 'delete', categoryLabel: '删', description: '冻结注销账号、人员离职清理与部门撤并' },
+      { code: 'export', name: '组织花名册批量导出', category: 'export', categoryLabel: '导', description: '导出组织编制清单、部门员工花名册' },
+      { code: 'audit', name: '人事变动审批复核', category: 'audit', categoryLabel: '审', description: '跨部门调岗、岗位提拔与任职异动审批' },
+    ];
+  }
+
+  // 5. 角色/权限/安全类
+  if (key.includes('role') || key.includes('perm') || key.includes('auth')) {
+    return [
+      { code: 'query', name: '权限矩阵与角色检索', category: 'query', categoryLabel: '查', description: '查看角色列表、权限分配矩阵与数据范围' },
+      { code: 'create', name: '新建角色与基准授权', category: 'create', categoryLabel: '增', description: '创建业务管理角色、指定基准功能权限集' },
+      { code: 'update', name: '权限微调与菜单变更', category: 'update', categoryLabel: '改', description: '勾选/剔除菜单权限、调整细粒度按钮控制' },
+      { code: 'delete', name: '角色废除与下线清理', category: 'delete', categoryLabel: '删', description: '清理已停用角色、解除所有成员绑定并删除' },
+      { code: 'export', name: '角色权限矩阵导出', category: 'export', categoryLabel: '导', description: '导出角色授权清单与系统安全合规对照表' },
+      { code: 'audit', name: '敏感权限变更审计', category: 'audit', categoryLabel: '审', description: '特权账号授权双人复核、变更日志合规审计' },
+    ];
+  }
+
+  // 6. 模版/规则/配置/字典类
+  if (key.includes('config') || key.includes('tpl') || key.includes('rule') || key.includes('dict') || key.includes('scheme')) {
+    return [
+      { code: 'query', name: '规则配置检索与查看', category: 'query', categoryLabel: '查', description: '检索策略规则列表、系统配置项与字典值' },
+      { code: 'create', name: '新增规则与配置模版', category: 'create', categoryLabel: '增', description: '录入新监测策略、设定阈值条件与模板项' },
+      { code: 'update', name: '参数微调与策略优化', category: 'update', categoryLabel: '改', description: '修改生效参数、调整优先级与更新配置' },
+      { code: 'delete', name: '规则停用与下线清理', category: 'delete', categoryLabel: '删', description: '下线失效规则、作废历史模版与清理冗余' },
+      { code: 'export', name: '模版规则包备份导出', category: 'export', categoryLabel: '导', description: '导出规则包 JSON/Excel、系统配置备份文件' },
+      { code: 'audit', name: '规则投产双人复核', category: 'audit', categoryLabel: '审', description: '生产环境规则发布前合规性校验与审批' },
+    ];
+  }
+
+  // 7. 标准通用增删改查兜底
+  return [
+    { code: 'query', name: '数据查询浏览', category: 'query', categoryLabel: '查', description: '列表检索过滤、多维筛选及明细弹窗查看' },
+    { code: 'create', name: '新增记录录入', category: 'create', categoryLabel: '增', description: '创建新增记录、表单填写与初始化录入' },
+    { code: 'update', name: '编辑修改更新', category: 'update', categoryLabel: '改', description: '修改已有业务数据、调整参数与更新状态' },
+    { code: 'delete', name: '记录删除移除', category: 'delete', categoryLabel: '删', description: '作废废弃记录、移入回收站或彻底删除' },
+    { code: 'export', name: '报表数据导出', category: 'export', categoryLabel: '导', description: '批量将列表及分析数据导出至 Excel 文件' },
+    { code: 'audit', name: '业务审核流转', category: 'audit', categoryLabel: '审', description: '业务流转核验、状态审批复核与归档签批' },
+  ];
+};
+
 export interface SysMenuItem {
   id: string;
   parentId: string; // '0' 表示顶级一级菜单，或指向父级一级菜单 id
@@ -68,6 +259,10 @@ export interface SysMenuItem {
   boundPermCodes?: string[]; // 绑定的应用权限唯一标识编码列表（主权限/子权限）
   visible: boolean; // 前台显示状态：可见 / 不可见（不可见时沉底、置灰、加删除线且不可上下排序）
   isNewPlaceholder?: boolean; // 是否为新增待保存菜单
+  moduleKey?: string; // 关联挂载的端组件模块Key
+  isModuleComponent?: boolean; // 标识是否为挂载的端组件模块
+  kernel?: string; // 组件所属核，如'业务核' | '组织核' | '开通核' | '私有组件'
+  moduleActions?: string[]; // 选中的具体功能操作编码列表（二次勾选：增、删、改、查、导、审等）
 }
 
 export interface MenuAuditLog {
@@ -648,17 +843,27 @@ export const INITIAL_DITING_MENUS: SysMenuItem[] = [
 export interface MenuManageProps {
   appName?: string;
   appCode?: string;
+  endpointName?: string;
+  endpointKind?: string;
   onShowToast?: (text: string, type: 'success' | 'warning' | 'info') => void;
   menus?: SysMenuItem[];
   onMenusChange?: React.Dispatch<React.SetStateAction<SysMenuItem[]>>;
+  focusMenuId?: string | null;
+  availableComponents?: AvailableComponentOption[];
+  onNavigateToComponents?: () => void;
 }
 
 export const MenuManage: React.FC<MenuManageProps> = ({
   appName = '谛听预警系统',
   appCode = 'APP-DITING-01',
+  endpointName,
+  endpointKind,
   onShowToast,
   menus: externalMenus,
-  onMenusChange: externalSetMenus
+  onMenusChange: externalSetMenus,
+  focusMenuId,
+  availableComponents = [],
+  onNavigateToComponents,
 }) => {
   // 核心菜单状态（支持外部受控同步与内部默认状态）
   const [internalMenus, setInternalMenus] = useState<SysMenuItem[]>(INITIAL_DITING_MENUS);
@@ -667,18 +872,33 @@ export const MenuManage: React.FC<MenuManageProps> = ({
   const [selectedMenuId, setSelectedMenuId] = useState<string>('m_dt_home');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedMenuIds, setExpandedMenuIds] = useState<string[]>([
-    'm_dt_scheme',
-    'm_dt_topic',
-    'm_dt_warehouse',
-    'm_dt_tag',
-    'm_dt_hot',
-    'm_dt_report_lib',
-    'm_dt_sys_config'
+    'm_dt_scheme'
   ]);
 
   // 编辑表单工作副本
   const [editForm, setEditForm] = useState<SysMenuItem | null>(INITIAL_DITING_MENUS[0]);
   const [isFormDirty, setIsFormDirty] = useState(false);
+
+  // 当外部指定聚焦的菜单项时（如点击了模块组件卡片上的“个性化配置”）
+  useEffect(() => {
+    if (focusMenuId) {
+      const target = menus.find((m) => m.id === focusMenuId);
+      if (target) {
+        setSelectedMenuId(target.id);
+        setEditForm({
+          ...target,
+          boundPermCodes: target.boundPermCodes ? [...target.boundPermCodes] : [],
+          moduleActions: target.moduleActions
+            ? [...target.moduleActions]
+            : (target.moduleKey ? getModuleAvailableActions(target.moduleKey).map(a => a.code) : undefined)
+        });
+        setIsFormDirty(false);
+        if (target.parentId && target.parentId !== '0') {
+          setExpandedMenuIds((prev) => (prev.includes(target.parentId) ? prev : [...prev, target.parentId]));
+        }
+      }
+    }
+  }, [focusMenuId, menus]);
 
   // 浮框弹窗：“添加菜单”
   const [isAddMenuModalOpen, setIsAddMenuModalOpen] = useState(false);
@@ -693,6 +913,11 @@ export const MenuManage: React.FC<MenuManageProps> = ({
   const [jsonText, setJsonText] = useState('');
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // 拖拽排序状态（同级菜单拖拽排序）
+  const [draggingMenuId, setDraggingMenuId] = useState<string | null>(null);
+  const [dragOverMenuId, setDragOverMenuId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
 
   // 图标库选择器搜索
   const [iconSearchQuery, setIconSearchQuery] = useState('');
@@ -736,7 +961,10 @@ export const MenuManage: React.FC<MenuManageProps> = ({
     setSelectedMenuId(item.id);
     setEditForm({
       ...item,
-      boundPermCodes: item.boundPermCodes ? [...item.boundPermCodes] : []
+      boundPermCodes: item.boundPermCodes ? [...item.boundPermCodes] : [],
+      moduleActions: item.moduleActions
+        ? [...item.moduleActions]
+        : (item.moduleKey ? getModuleAvailableActions(item.moduleKey).map(a => a.code) : undefined)
     });
     setIsFormDirty(false);
   };
@@ -943,7 +1171,10 @@ export const MenuManage: React.FC<MenuManageProps> = ({
     if (!currentSelectedMenu) return;
     setEditForm({
       ...currentSelectedMenu,
-      boundPermCodes: currentSelectedMenu.boundPermCodes ? [...currentSelectedMenu.boundPermCodes] : []
+      boundPermCodes: currentSelectedMenu.boundPermCodes ? [...currentSelectedMenu.boundPermCodes] : [],
+      moduleActions: currentSelectedMenu.moduleActions
+        ? [...currentSelectedMenu.moduleActions]
+        : (currentSelectedMenu.moduleKey ? getModuleAvailableActions(currentSelectedMenu.moduleKey).map(a => a.code) : undefined)
     });
     setIsFormDirty(false);
     onShowToast?.('已还原为修改前的配置', 'info');
@@ -1038,7 +1269,182 @@ export const MenuManage: React.FC<MenuManageProps> = ({
     }
   };
 
-  // 保存并发布
+  // ==========================================
+  // 拖拽排序核心逻辑（同级菜单拖拽排序）
+  // ==========================================
+  const handleDragStart = (menuId: string, e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', menuId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingMenuId(menuId);
+  };
+
+  const handleDragOver = (targetId: string, targetParentId: string, e: React.DragEvent) => {
+    e.preventDefault();
+    if (!draggingMenuId || draggingMenuId === targetId) return;
+
+    const sourceItem = menus.find((m) => m.id === draggingMenuId);
+    if (!sourceItem || sourceItem.parentId !== targetParentId) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
+    e.dataTransfer.dropEffect = 'move';
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const pos = e.clientY < midY ? 'before' : 'after';
+
+    setDragOverMenuId(targetId);
+    setDropPosition(pos);
+  };
+
+  const handleDragLeave = (targetId: string, e: React.DragEvent) => {
+    if (dragOverMenuId === targetId) {
+      setDragOverMenuId(null);
+      setDropPosition(null);
+    }
+  };
+
+  const handleDrop = (targetId: string, targetParentId: string, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!draggingMenuId || draggingMenuId === targetId) {
+      setDraggingMenuId(null);
+      setDragOverMenuId(null);
+      setDropPosition(null);
+      return;
+    }
+
+    const sourceItem = menus.find((m) => m.id === draggingMenuId);
+    const targetItem = menus.find((m) => m.id === targetId);
+    if (!sourceItem || !targetItem) {
+      setDraggingMenuId(null);
+      setDragOverMenuId(null);
+      setDropPosition(null);
+      return;
+    }
+
+    if (sourceItem.parentId !== targetItem.parentId) {
+      onShowToast?.('仅支持在同级菜单之间进行拖拽排序', 'warning');
+      setDraggingMenuId(null);
+      setDragOverMenuId(null);
+      setDropPosition(null);
+      return;
+    }
+
+    const parentId = sourceItem.parentId;
+    const siblings = menus
+      .filter((m) => m.parentId === parentId)
+      .sort((a, b) => a.sort - b.sort);
+
+    const remaining = siblings.filter((m) => m.id !== draggingMenuId);
+    const targetIdx = remaining.findIndex((m) => m.id === targetId);
+    const insertIdx = dropPosition === 'after' ? targetIdx + 1 : targetIdx;
+
+    remaining.splice(insertIdx, 0, sourceItem);
+
+    const sortMap = new Map(remaining.map((item, idx) => [item.id, idx + 1]));
+
+    setMenus((prev) =>
+      prev.map((m) => {
+        if (sortMap.has(m.id)) {
+          return { ...m, sort: sortMap.get(m.id)! };
+        }
+        return m;
+      })
+    );
+
+    onShowToast?.(`已成功更新「${sourceItem.menuName}」同级排序`, 'success');
+    setDraggingMenuId(null);
+    setDragOverMenuId(null);
+    setDropPosition(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingMenuId(null);
+    setDragOverMenuId(null);
+    setDropPosition(null);
+  };
+
+  // 自由快速添加一级菜单
+  const handleQuickAddPrimary = () => {
+    const trimmedCode = `MENU_${Date.now().toString().slice(-6)}`;
+    const newId = 'menu_' + Date.now();
+    const primarySiblings = menus.filter((m) => m.parentId === '0');
+    const newSort = primarySiblings.length + 1;
+
+    const newMenuItem: SysMenuItem = {
+      id: newId,
+      parentId: '0',
+      menuCode: trimmedCode,
+      menuName: '新一级菜单',
+      hasIcon: true,
+      iconType: 'library',
+      icon: 'Folder',
+      routePath: `/menu/${trimmedCode.toLowerCase()}`,
+      target: 'frame',
+      sort: newSort,
+      visible: true,
+      globalVisible: true,
+      boundPermCodes: [],
+      isNewPlaceholder: true,
+    };
+
+    setMenus((prev) => [...prev, newMenuItem]);
+    setSelectedMenuId(newId);
+    setEditForm({ ...newMenuItem });
+    setIsFormDirty(true);
+    onShowToast?.('已添加新的一级菜单，请在右侧完善菜单名称与配置', 'success');
+  };
+
+  // 自由快速添加子菜单
+  const handleQuickAddChild = (parentId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const parent = menus.find((m) => m.id === parentId) || menus.find((m) => m.parentId === '0');
+    if (!parent) {
+      handleQuickAddPrimary();
+      return;
+    }
+
+    const trimmedCode = `SUB_${Date.now().toString().slice(-6)}`;
+    const newId = 'menu_' + Date.now();
+    const siblings = menus.filter((m) => m.parentId === parent.id);
+    const newSort = siblings.length + 1;
+
+    const newMenuItem: SysMenuItem = {
+      id: newId,
+      parentId: parent.id,
+      menuCode: trimmedCode,
+      menuName: '新子菜单',
+      hasIcon: true,
+      iconType: 'library',
+      icon: 'Activity',
+      routePath: `${parent.routePath.replace(/\/$/, '')}/${trimmedCode.toLowerCase()}`,
+      target: 'frame',
+      sort: newSort,
+      visible: true,
+      globalVisible: true,
+      boundPermCodes: [],
+      isNewPlaceholder: true,
+    };
+
+    setMenus((prev) => [...prev, newMenuItem]);
+    setSelectedMenuId(newId);
+    setEditForm({ ...newMenuItem });
+    setIsFormDirty(true);
+    if (!expandedMenuIds.includes(parent.id)) {
+      setExpandedMenuIds((prev) => [...prev, parent.id]);
+    }
+    onShowToast?.(`已在「${parent.menuName}」下添加子菜单，请在右侧配置`, 'success');
+  };
+
+  // 快速删除菜单项（触发确认弹窗）
+  const handleDeleteMenuItem = (item: SysMenuItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedMenuId(item.id);
+    setEditForm({ ...item });
+    setIsDeleteConfirmOpen(true);
+  };
   const handleSaveAndPublish = () => {
     const hasUnsavedPlaceholder = menus.some(m => m.isNewPlaceholder);
     if (hasUnsavedPlaceholder) {
@@ -1177,13 +1583,20 @@ export const MenuManage: React.FC<MenuManageProps> = ({
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200/80 shadow-2xs shrink-0">
               <LayoutList className="w-4 h-4" />
             </div>
-            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-              默认菜单管理
-            </h2>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  {endpointName ? `${endpointName} · 菜单配置` : '默认菜单管理'}
+                </h2>
+                {endpointName && (
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-[#1e376b] text-white flex items-center gap-1 shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    实时联动当前端
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-            您可以配置本应用在 V8 前端显示的菜单，支持两级菜单设置。
-          </p>
         </div>
 
         {/* 最右侧：导入、导出、保存并发布按钮 */}
@@ -1226,12 +1639,43 @@ export const MenuManage: React.FC<MenuManageProps> = ({
         </div>
       </div>
 
-      {/* ---------------- 左右合并工作区（以中间竖线分隔，无多余外框嵌套） ---------------- */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 items-stretch pt-1">
-        {/* ===================== 左侧：菜单层级树组件 (5 列，无灰色背景框，右侧有竖线分隔，两边等高) ===================== */}
-        <div className="lg:col-span-5 flex flex-col gap-3 lg:pr-6 lg:border-r lg:border-slate-200/90 pb-6 lg:pb-0 h-full">
-          {/* 树顶部搜索与“添加菜单”按钮 */}
-          <div className="flex items-center justify-between gap-2">
+      {/* ---------------- 左右层次化工作区 ---------------- */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch pt-1">
+        {/* ===================== 左侧：菜单层级树组件 (5 列，独立卡片化面板，紧凑高层次) ===================== */}
+        <div className="lg:col-span-5 bg-slate-50/75 rounded-xl border border-slate-200/90 p-4 flex flex-col gap-3 shadow-2xs h-full">
+          {/* 树顶部：标题与快速添加操作 */}
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-slate-800 tracking-tight">菜单层级导航树</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white text-slate-500 border border-slate-200 font-bold">
+                共 {menus.length} 项
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleQuickAddPrimary}
+                className="px-2.5 py-1.5 text-xs font-bold bg-[#1e376b] hover:bg-[#14264c] text-white rounded-lg flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs transition-all"
+                title="自由快速添加新的一级主菜单"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ 一级菜单</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickAddChild(selectedMenuId || rootMenus[0]?.id || '')}
+                className="px-2.5 py-1.5 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-[#1e376b] border border-blue-200/80 rounded-lg flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
+                title="在当前选中的菜单下添加子菜单"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ 子菜单</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 搜索与向导 */}
+          <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
@@ -1239,7 +1683,7 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="搜索菜单名称或编码..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-medium transition-colors"
+                className="w-full pl-8 pr-7 py-1.5 text-xs bg-white hover:bg-white focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-medium transition-colors"
               />
               {searchQuery && (
                 <button
@@ -1252,21 +1696,22 @@ export const MenuManage: React.FC<MenuManageProps> = ({
               )}
             </div>
 
-            {/* 点击添加菜单：弹出浮框选择添加一级还是二级菜单 */}
             <button
               type="button"
               onClick={handleOpenAddMenuModal}
-              className="px-3 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1 shrink-0 cursor-pointer shadow-xs transition-colors"
-              title="添加一级或二级菜单"
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-lg flex items-center gap-1 shrink-0 cursor-pointer transition-colors border border-slate-200 shadow-2xs"
+              title="打开弹窗添加向导"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>添加菜单</span>
+              <span>向导</span>
             </button>
           </div>
 
-          {/* 快捷展开/折叠 */}
-          <div className="flex items-center justify-between px-1 text-[11px] text-slate-400">
-            <span>菜单层级结构（点击切换选中）</span>
+          {/* 快捷展开/折叠与拖拽提示 */}
+          <div className="flex items-center justify-between px-0.5 text-[11px] text-slate-400">
+            <span className="flex items-center gap-1">
+              <span>同级支持拖拽排序</span>
+              <span className="text-[10px] text-slate-300">· 点击选中配置</span>
+            </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -1274,15 +1719,15 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                   const allParentIds = rootMenus.map(m => m.id);
                   setExpandedMenuIds(expandedMenuIds.length > 0 ? [] : allParentIds);
                 }}
-                className="text-slate-500 hover:text-slate-800 cursor-pointer"
+                className="text-slate-500 hover:text-[#1e376b] font-medium cursor-pointer"
               >
                 {expandedMenuIds.length > 0 ? '全部折叠' : '全部展开'}
               </button>
             </div>
           </div>
 
-          {/* 菜单树列表（无上下滚动条，随内容自然展开） */}
-          <div className="flex flex-col gap-1.5 flex-1">
+          {/* 菜单树列表（自适应填充高度，超出平滑滚动） */}
+          <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto pr-1">
             {rootMenus.length === 0 ? (
               <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2 bg-white rounded-xl border border-dashed border-slate-200">
                 <Search className="w-6 h-6 text-slate-300" />
@@ -1301,13 +1746,29 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                 const isFirstInVisibleGroup = groupIdx === 0;
                 const isLastInVisibleGroup = groupIdx === visibleSiblings.length - 1;
 
+                const isDraggingCurrent = draggingMenuId === root.id;
+                const isOverCurrent = dragOverMenuId === root.id;
+
                 return (
                   <div key={root.id} className="flex flex-col gap-1">
+                    {/* 拖拽放置指示线 (Before) */}
+                    {isOverCurrent && dropPosition === 'before' && (
+                      <div className="h-1 bg-[#1e376b] rounded-full my-0.5 shadow-xs transition-all" />
+                    )}
+
                     {/* 一级菜单项 */}
                     <div
+                      draggable={root.visible}
+                      onDragStart={e => handleDragStart(root.id, e)}
+                      onDragOver={e => handleDragOver(root.id, root.parentId, e)}
+                      onDragLeave={e => handleDragLeave(root.id, e)}
+                      onDrop={e => handleDrop(root.id, root.parentId, e)}
+                      onDragEnd={handleDragEnd}
                       onClick={() => handleSelectMenu(root)}
                       className={`group p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 select-none ${
-                        isSelected
+                        isDraggingCurrent
+                          ? 'opacity-40 border-[#1e376b] border-dashed ring-2 ring-[#1e376b]/20 bg-blue-50/50'
+                          : isSelected
                           ? 'bg-blue-50/90 border-blue-300 shadow-xs ring-2 ring-blue-400/20'
                           : root.isNewPlaceholder
                           ? 'bg-amber-50/80 border-amber-300 border-dashed'
@@ -1315,7 +1776,18 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                       }`}
                       id={`menu_tree_node_${root.id}`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        {/* 拖拽把手 */}
+                        <div
+                          className={`p-0.5 rounded text-slate-300 group-hover:text-slate-500 hover:text-[#1e376b] shrink-0 transition-colors ${
+                            root.visible ? 'cursor-grab active:cursor-grabbing' : 'opacity-20 cursor-not-allowed'
+                          }`}
+                          title={root.visible ? '拖拽调整同级排序' : '不可见菜单不可拖拽'}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <GripVertical className="w-3.5 h-3.5" />
+                        </div>
+
                         {/* 展开/折叠箭头 */}
                         {hasSubs ? (
                           <button
@@ -1330,7 +1802,7 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                             )}
                           </button>
                         ) : (
-                          <span className="w-5 text-center text-slate-300 font-mono text-[10px]">●</span>
+                          <span className="w-4 text-center text-slate-300 font-mono text-[10px]">●</span>
                         )}
 
                         {/* 图标（前台不可见时置灰） */}
@@ -1347,9 +1819,9 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                         </div>
 
                         {/* 菜单名称（只保留名称，不可见时文字加横删除线） */}
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           <span
-                            className={`text-xs truncate max-w-[150px] sm:max-w-[180px] ${
+                            className={`text-xs truncate max-w-[130px] sm:max-w-[150px] ${
                               !root.visible
                                 ? 'line-through text-slate-400 font-normal'
                                 : isSelected
@@ -1360,16 +1832,26 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                             {root.menuName}
                           </span>
                           {root.isNewPlaceholder && (
-                            <span className="text-[10px] text-amber-700 bg-amber-100/80 px-1 py-0.2 rounded font-bold">
+                            <span className="text-[10px] text-amber-700 bg-amber-100/80 px-1 py-0.2 rounded font-bold shrink-0">
                               新添加
                             </span>
                           )}
                         </div>
                       </div>
 
-                      {/* 右侧操作栏：小眼睛、上下排序按钮 (已删除编辑铅笔小图标) */}
+                      {/* 右侧快捷操作：添加子级、删除、小眼睛、上下微调 */}
                       <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                        {/* 1. 小眼睛图标（前台显隐开关） */}
+                        {/* 快捷添加子菜单 */}
+                        <button
+                          type="button"
+                          onClick={e => handleQuickAddChild(root.id, e)}
+                          className="p-1 text-slate-400 hover:text-[#1e376b] hover:bg-blue-50 rounded transition-colors"
+                          title="为此主菜单添加二级子菜单"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* 小眼睛图标（前台显隐开关） */}
                         <button
                           type="button"
                           onClick={e => handleToggleVisible(root.id, e)}
@@ -1383,7 +1865,17 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                           {root.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                         </button>
 
-                        {/* 2. 上下排序按钮 (不可见时禁止上下移动) */}
+                        {/* 快捷删除按钮 */}
+                        <button
+                          type="button"
+                          onClick={e => handleDeleteMenuItem(root, e)}
+                          className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                          title="删除此菜单"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* 上下微调按钮 */}
                         <div className="flex flex-col">
                           <button
                             type="button"
@@ -1415,9 +1907,14 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                       </div>
                     </div>
 
+                    {/* 拖拽放置指示线 (After) */}
+                    {isOverCurrent && dropPosition === 'after' && (
+                      <div className="h-1 bg-[#1e376b] rounded-full my-0.5 shadow-xs transition-all" />
+                    )}
+
                     {/* 二级子菜单列表 */}
                     {hasSubs && isExpanded && (
-                      <div className="pl-6 flex flex-col gap-1 border-l-2 border-slate-200/80 ml-4 py-0.5">
+                      <div className="pl-5 flex flex-col gap-1 border-l-2 border-slate-200/80 ml-3.5 py-0.5">
                         {subItems.map(sub => {
                           const isSubSelected = selectedMenuId === sub.id;
 
@@ -1426,93 +1923,135 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                           const isFirstSub = subGroupIdx === 0;
                           const isLastSub = subGroupIdx === visibleSubs.length - 1;
 
+                          const isDraggingSub = draggingMenuId === sub.id;
+                          const isOverSub = dragOverMenuId === sub.id;
+
                           return (
-                            <div
-                              key={sub.id}
-                              onClick={() => handleSelectMenu(sub)}
-                              className={`group p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 select-none ${
-                                isSubSelected
-                                  ? 'bg-blue-50/90 border-blue-300 shadow-xs ring-2 ring-blue-400/20'
-                                  : sub.isNewPlaceholder
-                                  ? 'bg-amber-50/80 border-amber-300 border-dashed'
-                                  : 'bg-white hover:bg-slate-50/80 border-slate-200/90'
-                              }`}
-                              id={`menu_tree_node_${sub.id}`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div
-                                  className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-all ${
-                                    !sub.visible
-                                      ? 'bg-slate-100 text-slate-300 opacity-50 grayscale'
-                                      : isSubSelected
-                                      ? 'bg-blue-600 text-white'
-                                      : 'bg-slate-100 text-slate-600'
-                                  }`}
-                                >
-                                  {renderIconPreview(sub, 'w-3 h-3')}
-                                </div>
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span
-                                    className={`text-xs truncate max-w-[140px] ${
+                            <div key={sub.id} className="flex flex-col gap-0.5">
+                              {/* 子菜单放置指示线 (Before) */}
+                              {isOverSub && dropPosition === 'before' && (
+                                <div className="h-1 bg-[#1e376b] rounded-full my-0.5 shadow-xs transition-all" />
+                              )}
+
+                              <div
+                                draggable={sub.visible}
+                                onDragStart={e => handleDragStart(sub.id, e)}
+                                onDragOver={e => handleDragOver(sub.id, sub.parentId, e)}
+                                onDragLeave={e => handleDragLeave(sub.id, e)}
+                                onDrop={e => handleDrop(sub.id, sub.parentId, e)}
+                                onDragEnd={handleDragEnd}
+                                onClick={() => handleSelectMenu(sub)}
+                                className={`group p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 select-none ${
+                                  isDraggingSub
+                                    ? 'opacity-40 border-[#1e376b] border-dashed ring-2 ring-[#1e376b]/20 bg-blue-50/50'
+                                    : isSubSelected
+                                    ? 'bg-blue-50/90 border-blue-300 shadow-xs ring-2 ring-blue-400/20'
+                                    : sub.isNewPlaceholder
+                                    ? 'bg-amber-50/80 border-amber-300 border-dashed'
+                                    : 'bg-white hover:bg-slate-50/80 border-slate-200/90'
+                                }`}
+                                id={`menu_tree_node_${sub.id}`}
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                  {/* 子菜单拖拽把手 */}
+                                  <div
+                                    className={`p-0.5 rounded text-slate-300 group-hover:text-slate-500 hover:text-[#1e376b] shrink-0 transition-colors ${
+                                      sub.visible ? 'cursor-grab active:cursor-grabbing' : 'opacity-20 cursor-not-allowed'
+                                    }`}
+                                    title={sub.visible ? '拖拽调整同级子菜单排序' : '不可见菜单不可拖拽'}
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <GripVertical className="w-3 h-3" />
+                                  </div>
+
+                                  <div
+                                    className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-all ${
                                       !sub.visible
-                                        ? 'line-through text-slate-400 font-normal'
+                                        ? 'bg-slate-100 text-slate-300 opacity-50 grayscale'
                                         : isSubSelected
-                                        ? 'text-blue-950 font-black'
-                                        : 'text-slate-700 font-bold'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-slate-100 text-slate-600'
                                     }`}
                                   >
-                                    {sub.menuName}
-                                  </span>
-                                  {sub.isNewPlaceholder && (
-                                    <span className="text-[9px] text-amber-700 bg-amber-100/80 px-1 rounded font-bold">
-                                      新添加
+                                    {renderIconPreview(sub, 'w-3 h-3')}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <span
+                                      className={`text-xs truncate max-w-[120px] ${
+                                        !sub.visible
+                                          ? 'line-through text-slate-400 font-normal'
+                                          : isSubSelected
+                                          ? 'text-blue-950 font-black'
+                                          : 'text-slate-700 font-bold'
+                                      }`}
+                                    >
+                                      {sub.menuName}
                                     </span>
-                                  )}
+                                    {sub.isNewPlaceholder && (
+                                      <span className="text-[9px] text-amber-700 bg-amber-100/80 px-1 rounded font-bold shrink-0">
+                                        新添加
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={e => handleToggleVisible(sub.id, e)}
+                                    className={`p-1 rounded transition-colors cursor-pointer ${
+                                      sub.visible
+                                        ? 'text-emerald-600 hover:bg-emerald-50'
+                                        : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'
+                                    }`}
+                                    title={sub.visible ? '在前台显示' : '在前台隐藏'}
+                                  >
+                                    {sub.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={e => handleDeleteMenuItem(sub, e)}
+                                    className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                                    title="删除此子菜单"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+
+                                  {/* 上下排序 (不可见时禁止上下移动) */}
+                                  <div className="flex flex-col">
+                                    <button
+                                      type="button"
+                                      disabled={!sub.visible || isFirstSub}
+                                      onClick={e => handleMoveSort(sub.id, 'up', e)}
+                                      className={`p-0.5 text-slate-400 hover:text-blue-600 rounded transition-colors ${
+                                        !sub.visible || isFirstSub
+                                          ? 'opacity-20 cursor-not-allowed text-slate-300'
+                                          : 'cursor-pointer'
+                                      }`}
+                                    >
+                                      <ChevronUp className="w-2.5 h-2.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={!sub.visible || isLastSub}
+                                      onClick={e => handleMoveSort(sub.id, 'down', e)}
+                                      className={`p-0.5 text-slate-400 hover:text-blue-600 rounded transition-colors ${
+                                        !sub.visible || isLastSub
+                                          ? 'opacity-20 cursor-not-allowed text-slate-300'
+                                          : 'cursor-pointer'
+                                      }`}
+                                    >
+                                      <ChevronDown className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                                <button
-                                  type="button"
-                                  onClick={e => handleToggleVisible(sub.id, e)}
-                                  className={`p-1 rounded transition-colors cursor-pointer ${
-                                    sub.visible
-                                      ? 'text-emerald-600 hover:bg-emerald-50'
-                                      : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'
-                                  }`}
-                                  title={sub.visible ? '在前台显示' : '在前台隐藏'}
-                                >
-                                  {sub.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                                </button>
-
-                                {/* 上下排序 (不可见时禁止上下移动) */}
-                                <div className="flex flex-col">
-                                  <button
-                                    type="button"
-                                    disabled={!sub.visible || isFirstSub}
-                                    onClick={e => handleMoveSort(sub.id, 'up', e)}
-                                    className={`p-0.5 text-slate-400 hover:text-blue-600 rounded transition-colors ${
-                                      !sub.visible || isFirstSub
-                                        ? 'opacity-20 cursor-not-allowed text-slate-300'
-                                        : 'cursor-pointer'
-                                    }`}
-                                  >
-                                    <ChevronUp className="w-2.5 h-2.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={!sub.visible || isLastSub}
-                                    onClick={e => handleMoveSort(sub.id, 'down', e)}
-                                    className={`p-0.5 text-slate-400 hover:text-blue-600 rounded transition-colors ${
-                                      !sub.visible || isLastSub
-                                        ? 'opacity-20 cursor-not-allowed text-slate-300'
-                                        : 'cursor-pointer'
-                                    }`}
-                                  >
-                                    <ChevronDown className="w-2.5 h-2.5" />
-                                  </button>
-                                </div>
-                              </div>
+                              {/* 子菜单放置指示线 (After) */}
+                              {isOverSub && dropPosition === 'after' && (
+                                <div className="h-1 bg-[#1e376b] rounded-full my-0.5 shadow-xs transition-all" />
+                              )}
                             </div>
                           );
                         })}
@@ -1525,109 +2064,519 @@ export const MenuManage: React.FC<MenuManageProps> = ({
           </div>
         </div>
 
-        {/* ===================== 右侧：编辑菜单面板 (7 列，无独立卡片框，与左侧合体协同，两边等高) ===================== */}
-        <div className="lg:col-span-7 flex flex-col gap-4 lg:pl-6 pt-6 lg:pt-0 border-t lg:border-t-0 border-slate-200/80 h-full">
+        {/* ===================== 右侧：编辑菜单面板 (7 列，独立卡片化面板，模块分层清晰) ===================== */}
+        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col gap-5">
           {editForm ? (
             <form
               onSubmit={handleSaveForm}
               className="flex flex-col gap-5"
             >
-              {/* 表单顶部标题（已删除“添加同级菜单”和“添加子菜单”按钮） */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
+              {/* 表单顶部标题 */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200 shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200 shrink-0 shadow-2xs">
                     {renderIconPreview(editForm, 'w-4 h-4')}
                   </div>
                   <div>
-                    <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
-                      <span>编辑菜单：{editForm.menuName}</span>
-                    </h4>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-black text-slate-900">
+                        {editForm.menuName}
+                      </h4>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-slate-100 text-slate-600">
+                        {editForm.parentId === '0' ? '一级主菜单' : '二级子菜单'}
+                      </span>
+                      {editForm.isModuleComponent && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#1e376b] text-white">
+                          已挂载模块
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      编码: {editForm.menuCode}
+                    </span>
                   </div>
                 </div>
 
-                {editForm.isNewPlaceholder && (
-                  <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                    待保存新菜单
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${
+                    editForm.visible
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-slate-100 text-slate-500 border border-slate-200'
+                  }`}>
+                    {editForm.visible ? '前台可见' : '前台隐藏'}
                   </span>
-                )}
+                  {editForm.isNewPlaceholder && (
+                    <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                      待保存新菜单
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* 表单字段列表 (一行一项单列布局) */}
-              <div className="flex flex-col gap-4.5">
-                {/* 1. 菜单名称 */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>
-                      菜单名称 <span className="text-rose-500">*</span>
+              {/* 表单分层卡片列表 */}
+              <div className="flex flex-col gap-4">
+                {/* ---------- 卡片 1: 基础属性 ---------- */}
+                <div className="bg-slate-50/60 rounded-xl border border-slate-200/80 p-4 flex flex-col gap-3.5 shadow-2xs">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                      01 基础属性
                     </span>
-                    <span className="text-[11px] text-slate-400 font-normal">
-                      最多 10 个汉字 ({editForm.menuName.length}/10)
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={10}
-                    value={editForm.menuName}
-                    onChange={e => {
-                      setEditForm({ ...editForm, menuName: e.target.value });
-                      setIsFormDirty(true);
-                    }}
-                    placeholder="请输入菜单名称（最多 10 个汉字）"
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-medium"
-                  />
+                    <span className="text-[10px] text-slate-400">名称与层级归属</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* 菜单名称 */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                        <span>
+                          菜单名称 <span className="text-rose-500">*</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-normal font-mono">
+                          {editForm.menuName.length}/10
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={10}
+                        value={editForm.menuName}
+                        onChange={e => {
+                          setEditForm({ ...editForm, menuName: e.target.value });
+                          setIsFormDirty(true);
+                        }}
+                        placeholder="请输入菜单名称"
+                        className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-medium text-slate-900 transition-colors"
+                      />
+                    </div>
+
+                    {/* 父级菜单 */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                        <span>
+                          挂载父级 <span className="text-rose-500">*</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          根目录为一级
+                        </span>
+                      </label>
+                      <select
+                        value={editForm.parentId}
+                        onChange={e => {
+                          setEditForm({ ...editForm, parentId: e.target.value });
+                          setIsFormDirty(true);
+                        }}
+                        className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-bold text-slate-800 transition-colors"
+                      >
+                        <option value="0">根目录（作为一级主菜单）</option>
+                        {existingPrimaryMenus
+                          .filter(m => m.id !== editForm.id)
+                          .map(parent => (
+                            <option key={parent.id} value={parent.id}>
+                              ├─ {parent.menuName}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                {/* 3. 父级菜单 */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>
-                      父级菜单 <span className="text-rose-500">*</span>
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-normal">
-                      选择「根目录」为一级菜单，选择其他一级主菜单则挂载为其二级子菜单
-                    </span>
-                  </label>
+                {/* ---------- 卡片 2: 组件库绑定设置 ---------- */}
+                <div id="component_binding_section" className="bg-slate-50/60 rounded-xl border border-slate-200/80 p-4 flex flex-col gap-3 shadow-2xs">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                        <Link2 className="w-3.5 h-3.5 text-[#1e376b]" />
+                        02 组件库绑定设置
+                      </span>
+                      {editForm.moduleKey ? (
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          已绑定组件
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded font-medium">
+                          未绑定 (纯分类目录/空链接)
+                        </span>
+                      )}
+                    </div>
 
-                  <select
-                    value={editForm.parentId}
-                    onChange={e => {
-                      setEditForm({ ...editForm, parentId: e.target.value });
+                    {/* 直接跳转组件库管理 */}
+                    {onNavigateToComponents && (
+                      <button
+                        type="button"
+                        onClick={onNavigateToComponents}
+                        className="px-2.5 py-1 text-xs font-bold text-[#1e376b] hover:text-[#14264c] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs"
+                        title="直接跳转至组件库管理与绑定界面"
+                      >
+                        <Library className="w-3.5 h-3.5 text-[#1e376b]" />
+                        <span>去组件库管理</span>
+                        <ArrowRight className="w-3 h-3 text-[#1e376b]/70" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 leading-relaxed">
+                    <span>选择将当前系统组件库中的业务组件挂载至该菜单。支持一键将组件名称与图标快速代入当前菜单。</span>
+                    {onNavigateToComponents && (
+                      <button
+                        type="button"
+                        onClick={onNavigateToComponents}
+                        className="text-blue-600 hover:text-blue-800 font-bold hover:underline shrink-0 ml-2 cursor-pointer flex items-center gap-0.5"
+                      >
+                        <span>去组件库管理</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <select
+                      value={editForm.moduleKey || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const matched = availableComponents?.find(c => c.key === val);
+                        if (matched) {
+                          const defaultActions = getModuleAvailableActions(matched.key).map(a => a.code);
+                          setEditForm({
+                            ...editForm,
+                            moduleKey: matched.key,
+                            isModuleComponent: true,
+                            kernel: matched.kernel,
+                            routePath: editForm.routePath && editForm.routePath !== '/' ? editForm.routePath : (matched.routePath || editForm.routePath),
+                            moduleActions: defaultActions,
+                          });
+                        } else {
+                          setEditForm({
+                            ...editForm,
+                            moduleKey: undefined,
+                            isModuleComponent: false,
+                            kernel: undefined,
+                            moduleActions: undefined,
+                          });
+                        }
+                        setIsFormDirty(true);
+                      }}
+                      className="flex-1 px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-[#1e376b] font-medium text-slate-800"
+                    >
+                      <option value="">-- 未关联具体组件 (纯分类目录) --</option>
+                      {availableComponents && availableComponents.length > 0 ? (
+                        availableComponents.map((c) => (
+                          <option key={c.key} value={c.key}>
+                            [{c.kernel}] {c.title} ({c.key})
+                          </option>
+                        ))
+                      ) : (
+                        <option value="ALERT_REALTIME">[业务核] 实时警情监控 (ALERT_REALTIME)</option>
+                      )}
+                    </select>
+
+                    {editForm.moduleKey && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matched = availableComponents?.find(c => c.key === editForm.moduleKey);
+                          if (matched) {
+                            setEditForm({
+                              ...editForm,
+                              menuName: matched.title,
+                              routePath: matched.routePath || editForm.routePath,
+                              hasIcon: true,
+                              iconType: 'library',
+                              iconName: (matched.icon as any) || editForm.iconName,
+                            });
+                            setIsFormDirty(true);
+                          }
+                        }}
+                        className="px-2.5 py-2 text-xs font-bold text-[#1e376b] bg-blue-50 hover:bg-blue-100 border border-blue-200/80 rounded-lg cursor-pointer transition-colors shrink-0 shadow-2xs"
+                        title="将组件默认名称、路由与推荐图标代入当前表单"
+                      >
+                        一键同步组件配置
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 选中组件的预览详情卡片 */}
+                  {editForm.moduleKey && (() => {
+                    const matched = availableComponents?.find(c => c.key === editForm.moduleKey);
+                    return (
+                      <div className="bg-white border border-blue-200/80 rounded-lg p-2.5 flex flex-col gap-2 text-xs shadow-2xs mt-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-black text-[#1e376b]">{matched?.title || editForm.moduleKey}</span>
+                              <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded font-mono">
+                                #{editForm.moduleKey}
+                              </span>
+                              <span className="text-[10px] text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded font-medium border border-blue-200">
+                                {matched?.kernel || editForm.kernel || '能力组件'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                              {matched?.description || '已成功绑定此组件能力，端访问时将自动渲染对应的模块视图。'}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditForm({
+                                ...editForm,
+                                moduleKey: undefined,
+                                isModuleComponent: false,
+                                kernel: undefined,
+                                moduleActions: undefined,
+                              });
+                              setIsFormDirty(true);
+                            }}
+                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer shrink-0 transition-colors"
+                            title="解除组件关联"
+                          >
+                            <Unlink className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* 该组件会展示的端 */}
+                        <div className="pt-2 border-t border-slate-100/90 flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 text-[11px]">
+                            <MonitorSmartphone className="w-3.5 h-3.5 text-[#1e376b] shrink-0" />
+                            <span className="font-bold text-slate-700">展示的端:</span>
+                            {matched?.displayedEndpoints && matched.displayedEndpoints.length > 0 ? (
+                              <div className="flex items-center gap-1.5 flex-wrap ml-1">
+                                {matched.displayedEndpoints.map((ep) => {
+                                  const isCurrent = endpointName && (ep.name === endpointName || ep.id === endpointName);
+                                  const EpIcon = getEndpointKindIcon(ep.kind);
+                                  const style = getEndpointKindStyle(ep.kind);
+                                  return (
+                                    <span
+                                      key={ep.id || ep.name}
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${style} ${
+                                        isCurrent ? 'ring-1 ring-[#1e376b]/30 shadow-2xs font-black' : ''
+                                      }`}
+                                      title={`该组件将在「${ep.name}」展示`}
+                                    >
+                                      <EpIcon className="w-2.5 h-2.5 shrink-0" />
+                                      <span>{ep.name}</span>
+                                      {isCurrent && (
+                                        <span className="text-[9px] bg-[#1e376b] text-white px-1 py-0.2 rounded font-medium">
+                                          当前端
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-dashed border-slate-200">
+                                当前端（{endpointName || '本端'}）正在关联中，保存后将在本端展示
+                              </span>
+                            )}
+                          </div>
+
+                          {matched?.displayedEndpoints && matched.displayedEndpoints.length > 0 && (
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              共在 {matched.displayedEndpoints.length} 个端展示
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 选中模块后的具体功能清单展示与二次勾选（增删改查等功能细化） */}
+                  {editForm.moduleKey && (() => {
+                    const availableActions = getModuleAvailableActions(editForm.moduleKey);
+                    const selectedActionCodes = editForm.moduleActions ?? availableActions.map(a => a.code);
+                    const selectedCount = selectedActionCodes.length;
+                    const totalCount = availableActions.length;
+                    const allSelected = selectedCount === totalCount;
+                    const noneSelected = selectedCount === 0;
+
+                    const toggleAction = (code: string) => {
+                      const next = selectedActionCodes.includes(code)
+                        ? selectedActionCodes.filter(c => c !== code)
+                        : [...selectedActionCodes, code];
+                      setEditForm({ ...editForm, moduleActions: next });
                       setIsFormDirty(true);
-                    }}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-bold text-slate-800"
-                  >
-                    <option value="0">根目录（一级主菜单）</option>
-                    {existingPrimaryMenus
-                      .filter(m => m.id !== editForm.id)
-                      .map(parent => (
-                        <option key={parent.id} value={parent.id}>
-                          ├─ {parent.menuName}
-                        </option>
-                      ))}
-                  </select>
+                    };
+
+                    const handleSelectAll = () => {
+                      setEditForm({ ...editForm, moduleActions: availableActions.map(a => a.code) });
+                      setIsFormDirty(true);
+                    };
+
+                    const handleSelectNone = () => {
+                      setEditForm({ ...editForm, moduleActions: [] });
+                      setIsFormDirty(true);
+                    };
+
+                    const handleSelectCrud = () => {
+                      const crudCodes = ['query', 'create', 'update', 'delete'].filter(c =>
+                        availableActions.some(a => a.code === c)
+                      );
+                      setEditForm({ ...editForm, moduleActions: crudCodes });
+                      setIsFormDirty(true);
+                    };
+
+                    const handleInvertSelect = () => {
+                      const inverted = availableActions
+                        .map(a => a.code)
+                        .filter(code => !selectedActionCodes.includes(code));
+                      setEditForm({ ...editForm, moduleActions: inverted });
+                      setIsFormDirty(true);
+                    };
+
+                    return (
+                      <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 flex flex-col gap-3 shadow-2xs mt-1">
+                        {/* 顶栏：标题、勾选计数、快捷批量操作 */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                              <CheckSquare className="w-3.5 h-3.5 text-[#1e376b]" />
+                              该模块具体功能授权 (二次勾选)
+                            </span>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold border ${
+                                selectedCount > 0
+                                  ? 'bg-blue-50 text-[#1e376b] border-blue-200'
+                                  : 'bg-rose-50 text-rose-600 border-rose-200'
+                              }`}
+                            >
+                              已勾选 {selectedCount} / {totalCount} 项
+                            </span>
+                          </div>
+
+                          {/* 快捷批量按钮 */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={handleSelectAll}
+                              className={`px-2 py-1 text-[11px] font-bold rounded border transition-colors cursor-pointer ${
+                                allSelected
+                                  ? 'bg-blue-50 text-[#1e376b] border-blue-200'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                              }`}
+                              title="全部开启"
+                            >
+                              全选
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSelectCrud}
+                              className="px-2 py-1 text-[11px] font-bold rounded border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                              title="仅勾选基础增删改查四项功能"
+                            >
+                              基础增删改查
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleInvertSelect}
+                              className="px-2 py-1 text-[11px] font-medium rounded border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                              title="反向选择勾选状态"
+                            >
+                              反选
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSelectNone}
+                              className={`px-2 py-1 text-[11px] font-medium rounded border transition-colors cursor-pointer ${
+                                noneSelected
+                                  ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                  : 'bg-white text-slate-500 border-slate-200 hover:text-rose-600 hover:bg-rose-50/50'
+                              }`}
+                              title="清空所有勾选项"
+                            >
+                              清空
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 具体功能项网格卡片 */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {availableActions.map((action) => {
+                            const isChecked = selectedActionCodes.includes(action.code);
+                            const style = ACTION_CATEGORY_STYLES[action.category];
+
+                            return (
+                              <div
+                                key={action.code}
+                                onClick={() => toggleAction(action.code)}
+                                className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all flex items-start gap-2.5 select-none ${
+                                  isChecked
+                                    ? `${style.activeBorder} shadow-2xs`
+                                    : 'border-slate-200 bg-slate-50/40 hover:bg-slate-50 hover:border-slate-300 opacity-60'
+                                }`}
+                              >
+                                {/* 复选框 */}
+                                <div
+                                  className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center shrink-0 border transition-all ${
+                                    isChecked
+                                      ? 'bg-[#1e376b] border-[#1e376b] text-white'
+                                      : 'bg-white border-slate-300'
+                                  }`}
+                                >
+                                  {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                                </div>
+
+                                {/* 内容区 */}
+                                <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span
+                                      className={`text-[9px] font-black px-1.5 py-0.2 rounded border uppercase font-mono ${style.pill}`}
+                                    >
+                                      {action.categoryLabel}
+                                    </span>
+                                    <span
+                                      className={`text-xs font-bold leading-none ${
+                                        isChecked ? 'text-slate-900' : 'text-slate-500'
+                                      }`}
+                                    >
+                                      {action.name}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 leading-normal line-clamp-2 mt-0.5">
+                                    {action.description}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* 提示说明 */}
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100">
+                          <span className="flex items-center gap-1.5">
+                            <Sliders className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span>支持二次勾选具体功能（增、删、改、查、导、审等）。未勾选的功能在端操作界面中将被隐藏或置灰禁用。</span>
+                          </span>
+                          <span className="font-mono text-[10px] text-slate-400 shrink-0">
+                            {selectedCount === totalCount ? '全功能就绪' : selectedCount === 0 ? '功能全禁用' : '部分功能启用'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
-                {/* 4. 菜单是否有图标 & 图标选择 */}
-                <div className="flex flex-col gap-2.5 p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <span>菜单是否有图标</span>
-                    </label>
-                    <div className="flex items-center gap-2">
+                {/* ---------- 卡片 3: 图标呈现 ---------- */}
+                <div className="bg-slate-50/60 rounded-xl border border-slate-200/80 p-4 flex flex-col gap-3 shadow-2xs">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                      03 图标呈现
+                    </span>
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => {
                           setEditForm({ ...editForm, hasIcon: true });
                           setIsFormDirty(true);
                         }}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                           editForm.hasIcon
                             ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                         }`}
                       >
-                        是
+                        启用图标
                       </button>
                       <button
                         type="button"
@@ -1635,13 +2584,13 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                           setEditForm({ ...editForm, hasIcon: false });
                           setIsFormDirty(true);
                         }}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                           !editForm.hasIcon
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                            ? 'bg-slate-600 text-white border-slate-600 shadow-2xs'
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                         }`}
                       >
-                        否
+                        无图标
                       </button>
                     </div>
                   </div>
@@ -1828,119 +2777,112 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                   )}
                 </div>
 
-                {/* 5. 前端路由地址 */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>
-                      前端路由地址 <span className="text-rose-500">*</span>
+                {/* ---------- 卡片 4: 打开方式与前台显示状态 ---------- */}
+                <div className="bg-slate-50/60 rounded-xl border border-slate-200/80 p-4 flex flex-col gap-3.5 shadow-2xs">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                      04 页面行为与显示状态
                     </span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editForm.routePath}
-                    onChange={e => {
-                      setEditForm({ ...editForm, routePath: e.target.value });
-                      setIsFormDirty(true);
-                    }}
-                    placeholder="例如：/diting/warning/realtime"
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-mono font-medium text-slate-900"
-                  />
-                </div>
-
-                {/* 6. 打开方式 */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-700">打开方式</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditForm({ ...editForm, target: 'frame' });
-                        setIsFormDirty(true);
-                      }}
-                      className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                        editForm.target === 'frame'
-                          ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Maximize2 className="w-3.5 h-3.5" />
-                      <span>整个框架(_top)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditForm({ ...editForm, target: '_blank' });
-                        setIsFormDirty(true);
-                      }}
-                      className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                        editForm.target === '_blank'
-                          ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>新窗口(_blank)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditForm({ ...editForm, target: '_self' });
-                        setIsFormDirty(true);
-                      }}
-                      className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                        editForm.target === '_self'
-                          ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>本窗口(_self)</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 7. 前台显示状态 */}
-                <div className="flex items-center justify-between p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-bold text-slate-800">前台显示状态</span>
-                    <span className="text-[11px] text-slate-500">
-                      {editForm.visible
-                        ? '正常在前台显示并参与排序'
-                        : '在前台隐藏，在左侧沉底、图标置灰、文字加删除线且不可移动'}
-                    </span>
+                    <span className="text-[10px] text-slate-400">窗口模式与前台可见性</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditForm({ ...editForm, visible: true });
-                        setIsFormDirty(true);
-                      }}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
-                        editForm.visible
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>可见</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditForm({ ...editForm, visible: false });
-                        setIsFormDirty(true);
-                      }}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
-                        !editForm.visible
-                          ? 'bg-slate-600 text-white border-slate-600 shadow-2xs'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <EyeOff className="w-3.5 h-3.5" />
-                      <span>不可见</span>
-                    </button>
+                  <div className="flex flex-col gap-3">
+                    {/* 打开方式 */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-700">窗口打开方式</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditForm({ ...editForm, target: 'frame' });
+                            setIsFormDirty(true);
+                          }}
+                          className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            editForm.target === 'frame'
+                              ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                          <span>整个框架(_top)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditForm({ ...editForm, target: '_blank' });
+                            setIsFormDirty(true);
+                          }}
+                          className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            editForm.target === '_blank'
+                              ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>新窗口(_blank)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditForm({ ...editForm, target: '_self' });
+                            setIsFormDirty(true);
+                          }}
+                          className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            editForm.target === '_self'
+                              ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span>本窗口(_self)</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 前台显示状态 */}
+                    <div className="flex items-center justify-between p-3 bg-white border border-slate-200/90 rounded-xl">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-bold text-slate-800">前台显示状态</span>
+                        <span className="text-[11px] text-slate-500">
+                          {editForm.visible
+                            ? '正常在前台导航中显示并参与排序'
+                            : '在前台隐藏，在左侧沉底、图标置灰且不可移动'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditForm({ ...editForm, visible: true });
+                            setIsFormDirty(true);
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                            editForm.visible
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>可见</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditForm({ ...editForm, visible: false });
+                            setIsFormDirty(true);
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                            !editForm.visible
+                              ? 'bg-slate-600 text-white border-slate-600 shadow-2xs'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <EyeOff className="w-3.5 h-3.5" />
+                          <span>不可见</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

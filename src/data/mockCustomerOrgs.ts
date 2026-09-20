@@ -1049,7 +1049,7 @@ export const INITIAL_CUSTOMER_ORGS: CustomerOrgItem[] = [
   }
 ];
 
-export const ORG_PRODUCT_CYCLE = ['prod-tb', 'prod-zgy', 'prod-dt', 'prod-sb', 'prod-msg'] as const;
+export const ORG_PRODUCT_CYCLE = ['prod-tq', 'prod-ddsb', 'prod-zlsp'] as const;
 
 export const withOrgProductBindings = (orgs: CustomerOrgItem[]): CustomerOrgItem[] =>
   orgs.map((org, index) => ({
