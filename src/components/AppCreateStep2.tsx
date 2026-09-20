@@ -537,7 +537,7 @@ export const AppCreateStep2: React.FC<AppCreateStep2Props> = ({
   const menuConfig = React.useMemo(() => ([
     {
       id: 'basic_info' as const,
-      label: '基本配置',
+      label: '应用基本配置',
       subtext: '基本信息、公众号、参数与发布',
       icon: FileText,
       badge: ''

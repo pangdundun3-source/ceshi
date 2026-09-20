@@ -9,6 +9,7 @@ import {
   INITIAL_INSTANCES,
   INITIAL_PRODUCTS,
   BusinessProduct,
+  buildPrivateModules,
 } from '../data/appPlatform';
 
 interface AppPlatformProps {
@@ -72,32 +73,7 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
     `${item.name}${item.code}${item.description}`.toLowerCase().includes(keyword.toLowerCase().trim())
   );
 
-  if (mode === 'wizard') {
-    return (
-      <AppPlatformWizard
-        initialProduct={wizardInitialProduct}
-        onCancel={() => {
-          setMode('list');
-          setWizardInitialProduct(undefined);
-        }}
-        onFinish={({ product, instance, endpoints: eps, domains: doms }) => {
-          // If it was an existing product, don't duplicate product
-          setProducts((prev) => {
-            const exists = prev.some((p) => p.id === product.id);
-            return exists ? prev : [product, ...prev];
-          });
-          setInstances((prev) => [instance, ...prev]);
-          setEndpoints((prev) => [...eps, ...prev]);
-          setDomains((prev) => [...doms, ...prev]);
-          setConsoleId(instance.id);
-          setConsoleInitialPane('publish');
-          setWizardInitialProduct(undefined);
-          setMode('console');
-        }}
-      />
-    );
-  }
-
+  // If in console mode, show AppConsole
   if (mode === 'console' && consoleInstance && consoleProduct) {
     const instanceEps = endpoints.filter((item) => item.instanceId === consoleInstance.id);
     return (
@@ -240,7 +216,7 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
           className="px-4 py-2 bg-[#1e376b] hover:bg-[#14264c] text-white rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-xs transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          开通业务系统
+          新增产品 / 开通系统
         </button>
       </div>
 
@@ -278,6 +254,16 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
               endpoints.filter((ep) => ep.instanceId === b.id).length
               - endpoints.filter((ep) => ep.instanceId === a.id).length
             ))[0];
+            const targetInstance = preferred || ins[0];
+            const configuredEndpointsCount = targetInstance
+              ? endpoints.filter((ep) => ep.instanceId === targetInstance.id).length
+              : endpoints.filter((ep) => ins.some((i) => i.id === ep.instanceId)).length;
+            const instanceModules = targetInstance?.privateModules?.length
+              ? targetInstance.privateModules
+              : (targetInstance ? buildPrivateModules(product.modules, product.version) : []);
+            const associatedComponentsCount = targetInstance
+              ? instanceModules.filter((m) => m.status === 'deployed').length
+              : product.modules.length;
             const isEnabled = (product.status || 'enabled') === 'enabled';
             const isPublished = product.publishStatus === 'published';
 
@@ -386,11 +372,15 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap pt-1 border-t border-slate-100/80">
-                    <span className="bg-slate-100 px-2 py-0.5 rounded font-medium text-slate-600">{product.type}</span>
+                    <span className="inline-flex items-center gap-1 text-slate-700">
+                      <Monitor className="w-3.5 h-3.5 text-blue-600" />
+                      <span><strong className="text-slate-900 font-bold">{configuredEndpointsCount}</strong>个端</span>
+                    </span>
                     <span>·</span>
-                    <span>包含 <strong>{product.modules.length}</strong> 个产品模块</span>
-                    <span>·</span>
-                    <span>已建 <strong>{ins.length}</strong> 个实例</span>
+                    <span className="inline-flex items-center gap-1 text-slate-700">
+                      <Library className="w-3.5 h-3.5 text-indigo-600" />
+                      <span><strong className="text-slate-900 font-bold">{associatedComponentsCount}</strong>个组件</span>
+                    </span>
                   </div>
                 </div>
 
@@ -421,6 +411,30 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
           })}
         </div>
       </div>
+
+      {/* 新增产品 / 开通业务系统向导弹窗 */}
+      {mode === 'wizard' && (
+        <AppPlatformWizard
+          initialProduct={wizardInitialProduct}
+          onCancel={() => {
+            setMode('list');
+            setWizardInitialProduct(undefined);
+          }}
+          onFinish={({ product, instance, endpoints: eps, domains: doms }) => {
+            setProducts((prev) => {
+              const exists = prev.some((p) => p.id === product.id);
+              return exists ? prev : [product, ...prev];
+            });
+            setInstances((prev) => [instance, ...prev]);
+            setEndpoints((prev) => [...eps, ...prev]);
+            setDomains((prev) => [...doms, ...prev]);
+            setConsoleId(instance.id);
+            setConsoleInitialPane('basic');
+            setWizardInitialProduct(undefined);
+            setMode('console');
+          }}
+        />
+      )}
     </div>
   );
 };

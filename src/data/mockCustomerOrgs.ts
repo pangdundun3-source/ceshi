@@ -3,6 +3,52 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export interface ProvisionRecordItem {
+  id: string;
+  recordTime: string; // e.g. 2025-01-01 09:30
+  type: '首次开通' | '版本升级' | '期限续费' | '开通试用' | '转正式版' | '功能变更';
+  productId: string;
+  productName: string;
+  productVersion: string; // e.g. V2.0.0-Release
+  licenseType: '正式版' | '试用版';
+  validPeriod: string; // e.g. 2025-01-01 至 2027-12-31
+  operator: string;
+  remark?: string;
+  status: '生效中' | '已到期' | '已升级';
+}
+
+export interface CustomerOrgSysSettings {
+  customSystemTitle?: string;
+  maxConcurrentSessions?: number;
+  accountQuota?: number;
+  storageQuotaGb?: number;
+  sessionTimeoutMinutes?: number;
+  isolationPolicy?: '租户独立分库' | '独立专区VPC' | '多租户逻辑隔离';
+  enableIpWhitelist?: boolean;
+  ipWhitelist?: string;
+  enableMfa?: boolean;
+  enableDataDesensitization?: boolean;
+  enableMaintenanceNotice?: boolean;
+  alertContactPhone?: string;
+  alertContactEmail?: string;
+}
+
+export interface CustomerOrgExtUserConfig {
+  idSource: '企业微信' | '钉钉' | '飞书' | '自建CAS/OAuth' | 'OIDC/LDAP';
+  corpId: string;
+  appSecret: string;
+  callbackUrl: string;
+  scope: string;
+  accountMappingField: '手机号' | '工号' | '邮箱' | '外部UnionID';
+  syncFrequency: '每小时' | '每4小时' | '每日凌晨' | '仅手动同步';
+  defaultRole: string;
+  allowGuestApply: boolean;
+  dataScope: '仅本部门' | '全机构跨部门协同';
+  lastTestedAt?: string;
+  testStatus?: 'connected' | 'error' | 'untested';
+  latencyMs?: number;
+}
+
 export interface CustomerOrgItem {
   id: string;
   orgName: string; // (a) 客户全称
@@ -13,6 +59,7 @@ export interface CustomerOrgItem {
   customerCategory: '一类客户' | '二类客户' | '三类客户'; // (e) 客户所属分类
   customerLevel: '省级' | '地市级' | '区县级' | '三类客户'; // (f) 客户级别
   version: '正式版' | '试用版';
+  productVersion?: string; // 软件版本号，如 V2.0.0-Release
   status: 'active' | 'expired' | 'disabled' | 'trash';
   isEnabled?: boolean;
   startDate: string;
@@ -26,7 +73,31 @@ export interface CustomerOrgItem {
   contactPhone?: string;
   remark?: string; // 备注说明
   productId?: string; // 开通的产品（对应产品管理里的产品）
+  productName?: string;
+  productCode?: string;
+  provisionRecords?: ProvisionRecordItem[]; // 开通流水记录
+  sysSettings?: CustomerOrgSysSettings;
+  extUserConfig?: CustomerOrgExtUserConfig;
 }
+
+export const PRODUCT_VERSIONS_MAP: Record<string, Array<{ version: string; tag: string; desc: string }>> = {
+  'prod-tq': [
+    { version: 'V2.0.0-Release', tag: '推荐稳定版', desc: '全功能多端协同指挥中心发布版' },
+    { version: 'V2.0', tag: '标准版', desc: '特情处置与研判协同基准版本' },
+    { version: 'V2.0.0-Intranet', tag: '专网版', desc: '物理专网高隔离应急专享版' },
+    { version: 'V1.9.2', tag: '历史维护版', desc: '兼容旧版协议的长期支持版本' },
+  ],
+  'prod-ddsb': [
+    { version: 'V1.8', tag: '推荐稳定版', desc: '鉴谣速报与快速处置协同系统生产版' },
+    { version: 'V1.8.0-Beta', tag: '特性测试版', desc: '包含全渠道自动化线索聚合特性' },
+    { version: 'V1.5.0', tag: '基础版', desc: '轻量化线索流转标准版' },
+  ],
+  'prod-zlsp': [
+    { version: 'V3.2.0-Release', tag: '推荐稳定版', desc: '全网态势感知与智能网评引导体系企业版' },
+    { version: 'V3.2', tag: '标准版', desc: '多端协同分析与快速研判基准版' },
+    { version: 'V3.0.0', tag: '经典版', desc: '态势感知基础分析版本' },
+  ]
+};
 
 // 统计单元选项清单（严格根据用户组织架构图节点构建）
 export const STATISTICAL_UNITS = [
@@ -1051,15 +1122,55 @@ export const INITIAL_CUSTOMER_ORGS: CustomerOrgItem[] = [
 
 export const ORG_PRODUCT_CYCLE = ['prod-tq', 'prod-ddsb', 'prod-zlsp'] as const;
 
+const PRODUCT_NAME_MAP: Record<string, string> = {
+  'prod-tq': '特情',
+  'prod-ddsb': '点点速豹',
+  'prod-zlsp': '知了速评'
+};
+
+const PRODUCT_DEFAULT_VER_MAP: Record<string, string> = {
+  'prod-tq': 'V2.0.0-Release',
+  'prod-ddsb': 'V1.8',
+  'prod-zlsp': 'V3.2.0-Release'
+};
+
 export const withOrgProductBindings = (orgs: CustomerOrgItem[]): CustomerOrgItem[] =>
-  orgs.map((org, index) => ({
-    ...org,
-    productId: org.productId || ORG_PRODUCT_CYCLE[index % ORG_PRODUCT_CYCLE.length]
-  }));
+  orgs.map((org, index) => {
+    const productId = org.productId || ORG_PRODUCT_CYCLE[index % ORG_PRODUCT_CYCLE.length];
+    const productVersion = org.productVersion || PRODUCT_DEFAULT_VER_MAP[productId] || 'V1.0';
+    const productName = org.productName || PRODUCT_NAME_MAP[productId] || '业务系统';
+    return {
+      ...org,
+      productId,
+      productName,
+      productVersion,
+      provisionRecords: org.provisionRecords || [
+        {
+          id: `pr-${org.id}-01`,
+          recordTime: `${org.startDate} 09:30`,
+          type: '首次开通',
+          productId,
+          productName,
+          productVersion,
+          licenseType: org.version,
+          validPeriod: `${org.startDate} 至 ${org.expireDate}`,
+          operator: org.salesPerson || '系统管理员',
+          remark: org.remark || (org.version === '正式版' ? '商业合同签约正式交付开通' : '售前试用接入'),
+          status: '生效中'
+        }
+      ]
+    };
+  });
 
 INITIAL_CUSTOMER_ORGS.forEach((org, index) => {
   if (!org.productId) {
     org.productId = ORG_PRODUCT_CYCLE[index % ORG_PRODUCT_CYCLE.length];
+  }
+  if (!org.productVersion) {
+    org.productVersion = PRODUCT_DEFAULT_VER_MAP[org.productId] || 'V1.0';
+  }
+  if (!org.productName) {
+    org.productName = PRODUCT_NAME_MAP[org.productId] || '业务系统';
   }
 });
 

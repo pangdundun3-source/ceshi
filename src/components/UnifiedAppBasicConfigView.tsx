@@ -96,13 +96,13 @@ export const UnifiedAppBasicConfigView: React.FC<UnifiedAppBasicConfigViewProps>
               <span className="text-slate-400 font-normal">/</span>
               <span className="text-slate-400 font-normal">各应用统一调用组件</span>
               <span className="text-slate-400 font-normal">/</span>
-              <span className="text-slate-600 font-medium">基本配置</span>
+              <span className="text-slate-600 font-medium">应用基本配置</span>
             </nav>
 
             {/* 三、页面主标题（Title）与 徽标标签 */}
             <div className="flex items-center gap-2.5 mt-1">
               <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight m-0 p-0">
-                基本配置
+                应用基本配置
               </h1>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#1e376b] text-white text-xs font-bold shadow-2xs select-none">
                 统一组件

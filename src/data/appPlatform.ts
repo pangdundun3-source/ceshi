@@ -19,14 +19,20 @@ export interface ThemeColorOption {
   badgeBg: string;
   textColor: string;
   borderColor: string;
+  id?: string;
+  color?: string;
+  iconBg?: string;
 }
 
 export const THEME_COLOR_PRESETS: ThemeColorOption[] = [
   {
     key: 'navy',
+    id: 'navy',
     name: '经典深蓝',
     hex: '#1e376b',
+    color: '#1e376b',
     bgGradient: 'from-[#1e376b] via-blue-900 to-slate-900',
+    iconBg: 'from-[#1e376b] via-blue-900 to-slate-900',
     lightBg: 'bg-blue-50',
     badgeBg: 'bg-[#1e376b]',
     textColor: 'text-[#1e376b]',
@@ -34,9 +40,12 @@ export const THEME_COLOR_PRESETS: ThemeColorOption[] = [
   },
   {
     key: 'ocean',
+    id: 'ocean',
     name: '海天蔚蓝',
     hex: '#0284c7',
+    color: '#0284c7',
     bgGradient: 'from-sky-700 via-blue-800 to-slate-900',
+    iconBg: 'from-sky-700 via-blue-800 to-slate-900',
     lightBg: 'bg-sky-50',
     badgeBg: 'bg-sky-600',
     textColor: 'text-sky-700',
@@ -44,9 +53,12 @@ export const THEME_COLOR_PRESETS: ThemeColorOption[] = [
   },
   {
     key: 'emerald',
+    id: 'emerald',
     name: '极光翡翠',
     hex: '#059669',
+    color: '#059669',
     bgGradient: 'from-emerald-700 via-teal-800 to-slate-900',
+    iconBg: 'from-emerald-700 via-teal-800 to-slate-900',
     lightBg: 'bg-emerald-50',
     badgeBg: 'bg-emerald-600',
     textColor: 'text-emerald-700',
@@ -54,9 +66,12 @@ export const THEME_COLOR_PRESETS: ThemeColorOption[] = [
   },
   {
     key: 'amber',
+    id: 'amber',
     name: '赤金琥珀',
     hex: '#d97706',
+    color: '#d97706',
     bgGradient: 'from-amber-600 via-orange-600 to-red-700',
+    iconBg: 'from-amber-600 via-orange-600 to-red-700',
     lightBg: 'bg-amber-50',
     badgeBg: 'bg-amber-600',
     textColor: 'text-amber-700',
@@ -64,9 +79,12 @@ export const THEME_COLOR_PRESETS: ThemeColorOption[] = [
   },
   {
     key: 'purple',
+    id: 'purple',
     name: '数智紫罗兰',
     hex: '#7c3aed',
+    color: '#7c3aed',
     bgGradient: 'from-purple-700 via-indigo-800 to-slate-900',
+    iconBg: 'from-purple-700 via-indigo-800 to-slate-900',
     lightBg: 'bg-purple-50',
     badgeBg: 'bg-purple-600',
     textColor: 'text-purple-700',
@@ -74,9 +92,12 @@ export const THEME_COLOR_PRESETS: ThemeColorOption[] = [
   },
   {
     key: 'rose',
+    id: 'rose',
     name: '警务赤霞',
     hex: '#dc2626',
+    color: '#dc2626',
     bgGradient: 'from-rose-700 via-red-800 to-slate-900',
+    iconBg: 'from-rose-700 via-red-800 to-slate-900',
     lightBg: 'bg-rose-50',
     badgeBg: 'bg-rose-600',
     textColor: 'text-rose-700',
@@ -84,16 +105,25 @@ export const THEME_COLOR_PRESETS: ThemeColorOption[] = [
   },
 ];
 
-export const PRESET_AVATARS = [
-  { id: 'flame', name: '特情火苗', icon: 'Flame', label: '特情预警' },
-  { id: 'zap', name: '闪电速豹', icon: 'Zap', label: '敏捷处置' },
-  { id: 'message', name: '智评对话', icon: 'MessageSquare', label: '舆情态势' },
-  { id: 'shield', name: '安全护盾', icon: 'Shield', label: '安消防控' },
-  { id: 'radar', name: '雷达监测', icon: 'Radio', label: '全域感知' },
-  { id: 'cpu', name: '智能大脑', icon: 'Cpu', label: '数智枢纽' },
-  { id: 'bell', name: '通知广播', icon: 'Bell', label: '指令通报' },
-  { id: 'globe', name: '全球视野', icon: 'Globe', label: '互联互通' },
-  { id: 'layers', name: '组件底座', icon: 'Layers', label: '平台架构' },
+export interface PresetAvatarOption {
+  id: string;
+  key: string;
+  name: string;
+  icon: string;
+  label: string;
+  bg: string;
+}
+
+export const PRESET_AVATARS: PresetAvatarOption[] = [
+  { id: 'flame', key: 'flame', name: '特情火苗', icon: 'Flame', label: '特情预警', bg: 'from-amber-600 via-orange-600 to-red-700' },
+  { id: 'zap', key: 'zap', name: '闪电速豹', icon: 'Zap', label: '敏捷处置', bg: 'from-emerald-700 via-teal-800 to-slate-900' },
+  { id: 'message', key: 'message', name: '智评对话', icon: 'MessageSquare', label: '舆情态势', bg: 'from-sky-700 via-blue-800 to-slate-900' },
+  { id: 'shield', key: 'shield', name: '安全护盾', icon: 'Shield', label: '安消防控', bg: 'from-blue-700 via-indigo-800 to-slate-900' },
+  { id: 'radar', key: 'radar', name: '雷达监测', icon: 'Radio', label: '全域感知', bg: 'from-purple-700 via-indigo-800 to-slate-900' },
+  { id: 'cpu', key: 'cpu', name: '智能大脑', icon: 'Cpu', label: '数智枢纽', bg: 'from-cyan-700 via-blue-800 to-slate-900' },
+  { id: 'bell', key: 'bell', name: '通知广播', icon: 'Bell', label: '指令通报', bg: 'from-rose-700 via-pink-800 to-slate-900' },
+  { id: 'globe', key: 'globe', name: '全球视野', icon: 'Globe', label: '互联互通', bg: 'from-teal-700 via-emerald-800 to-slate-900' },
+  { id: 'layers', key: 'layers', name: '组件底座', icon: 'Layers', label: '平台架构', bg: 'from-slate-700 via-slate-800 to-slate-900' },
 ];
 
 export interface BusinessProduct {

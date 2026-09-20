@@ -33,7 +33,9 @@ import {
   INITIAL_CUSTOMER_ORGS,
   STATISTICAL_UNITS,
   MASTER_ENTERPRISE_CUSTOMERS,
-  withOrgProductBindings
+  withOrgProductBindings,
+  PRODUCT_VERSIONS_MAP,
+  ProvisionRecordItem
 } from '../data/mockCustomerOrgs';
 import { INITIAL_PRODUCTS } from '../data/appPlatform';
 import { CustomerAppConfig } from './CustomerAppConfig';
@@ -110,6 +112,18 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
   const [openExpireDate, setOpenExpireDate] = useState('2027-12-31');
   const [openRemark, setOpenRemark] = useState('');
   const [openProductId, setOpenProductId] = useState(INITIAL_PRODUCTS[0]?.id || '');
+  const [openProductVersion, setOpenProductVersion] = useState<string>('V2.0.0-Release');
+
+  // 当选择的产品改变时，自动将开通版本匹配为该产品的推荐版本
+  useEffect(() => {
+    const versions = PRODUCT_VERSIONS_MAP[openProductId];
+    if (versions && versions.length > 0) {
+      setOpenProductVersion(versions[0].version);
+    } else {
+      const prod = getProduct(openProductId);
+      setOpenProductVersion(prod?.publishedVersion || prod?.version || 'V1.0');
+    }
+  }, [openProductId]);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -132,7 +146,10 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
     setOpenVersion('正式版');
     setOpenExpireDate('2027-12-31');
     setOpenRemark('');
-    setOpenProductId(INITIAL_PRODUCTS[0]?.id || '');
+    const defaultProdId = INITIAL_PRODUCTS[0]?.id || 'prod-tq';
+    setOpenProductId(defaultProdId);
+    const defaultVers = PRODUCT_VERSIONS_MAP[defaultProdId];
+    setOpenProductVersion(defaultVers?.[0]?.version || 'V2.0.0-Release');
     setIsAddCustModalOpen(true);
   };
 
@@ -299,6 +316,21 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
     }
 
     const newId = `cust-${Date.now()}`;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const initialRecord: ProvisionRecordItem = {
+      id: `pr-${newId}-01`,
+      recordTime: `${todayStr} ${new Date().toTimeString().slice(0, 5)}`,
+      type: openVersion === '正式版' ? '首次开通' : '开通试用',
+      productId: product.id,
+      productName: product.name,
+      productVersion: openProductVersion,
+      licenseType: openVersion,
+      validPeriod: `${todayStr} 至 ${openExpireDate || '2027-12-31'}`,
+      operator: selectedMasterOrg.salesPerson || '系统管理员',
+      remark: openRemark.trim() || (openVersion === '正式版' ? '商业合同交付首次开通' : '准入试用评估开通'),
+      status: '生效中'
+    };
+
     const newOrg: CustomerOrgItem = {
       id: newId,
       orgName: selectedMasterOrg.orgName,
@@ -311,7 +343,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
       version: openVersion,
       status: 'active',
       isEnabled: true,
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: todayStr,
       expireDate: openExpireDate || '2027-12-31',
       statUnit: selectedMasterOrg.statUnit,
       salesPerson: selectedMasterOrg.salesPerson || '夏小花',
@@ -320,7 +352,40 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
       remark: openRemark.trim() || undefined,
       accountUsed: 0,
       accountLimit: openVersion === '正式版' ? 100 : 20,
-      productId: product.id
+      productId: product.id,
+      productName: product.name,
+      productCode: product.code,
+      productVersion: openProductVersion,
+      provisionRecords: [initialRecord],
+      sysSettings: {
+        customSystemTitle: `${selectedMasterOrg.orgShortName || selectedMasterOrg.orgName} · ${product.name}`,
+        maxConcurrentSessions: openVersion === '正式版' ? 100 : 25,
+        accountQuota: openVersion === '正式版' ? 100 : 20,
+        storageQuotaGb: openVersion === '正式版' ? 500 : 50,
+        sessionTimeoutMinutes: 60,
+        isolationPolicy: selectedMasterOrg.customerLevel === '省级' ? '租户独立分库' : '多租户逻辑隔离',
+        enableIpWhitelist: false,
+        enableMfa: false,
+        enableDataDesensitization: true,
+        enableMaintenanceNotice: false,
+        alertContactPhone: selectedMasterOrg.contactPhone || '139****8866',
+        alertContactEmail: 'admin-sec@enterprise.cn'
+      },
+      extUserConfig: {
+        idSource: '企业微信',
+        corpId: `wx_${selectedMasterOrg.orgCode?.toLowerCase().replace(/-/g, '_') || 'corp_sn'}`,
+        appSecret: 'sec_8f99e3a1023d8c72b',
+        callbackUrl: `https://auth.gov.cn/oauth2/callback/${selectedMasterOrg.orgCode || 'sn'}`,
+        scope: 'snsapi_base',
+        accountMappingField: '手机号',
+        syncFrequency: '每日凌晨',
+        defaultRole: '外部填报员',
+        allowGuestApply: true,
+        dataScope: '仅本部门',
+        lastTestedAt: `${todayStr} 09:15`,
+        testStatus: 'connected',
+        latencyMs: 32
+      }
     };
 
     updateCustomerOrgs(prev => [newOrg, ...prev]);
@@ -328,7 +393,8 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
     setCustStatusFilter('全部');
     setCurrentCustPage(1);
     setCustJumpPage('1');
-    showToast(`成功为「${newOrg.orgShortName || newOrg.orgName}」开通产品「${product.name}」！`, 'success');
+    setSelectedCustForAppConfig(newOrg);
+    showToast(`开通成功！已为「${newOrg.orgShortName || newOrg.orgName}」开通「${product.name}」(${openProductVersion})，已进入机构详情页`, 'success');
   };
 
   // 确认删除客户机构
@@ -857,13 +923,20 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
 
                     {/* 3. 开通版本 */}
                     <td className="py-3.5 px-3 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold border ${
-                        cust.version === '正式版'
-                          ? 'bg-purple-50 text-purple-700 border-purple-200 shadow-2xs'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {cust.version}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
+                            cust.version === '正式版'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200 shadow-2xs'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {cust.version}
+                          </span>
+                          <span className="font-mono text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-bold">
+                            {cust.productVersion || 'V2.0.0-Release'}
+                          </span>
+                        </div>
+                      </div>
                     </td>
 
                     {/* 4. 授权状态 */}
@@ -1268,9 +1341,58 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                     </p>
                   )}
 
-                  {/* 开通的版本 */}
+                  {/* 1. 开通产品对应的软件版本 */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-700">开通的版本 *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <Boxes className="w-3.5 h-3.5 text-blue-600" />
+                        <span>开通产品对应的软件版本 *</span>
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        匹配「{getProduct(openProductId)?.name}」版本
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(PRODUCT_VERSIONS_MAP[openProductId] || [
+                        { version: getProduct(openProductId)?.version || 'V1.0', tag: '主线版本', desc: '标准发布版本' }
+                      ]).map((verItem) => (
+                        <div
+                          key={verItem.version}
+                          onClick={() => setOpenProductVersion(verItem.version)}
+                          className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                            openProductVersion === verItem.version
+                              ? 'border-blue-500 bg-blue-50/70 ring-2 ring-blue-100'
+                              : 'border-slate-200 bg-white hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono font-black text-xs text-slate-900">{verItem.version}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-blue-100 text-blue-800">
+                              {verItem.tag}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-1 line-clamp-1">{verItem.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 自定义版本输入 */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[11px] text-slate-400 shrink-0">自定义版本号:</span>
+                      <input
+                        type="text"
+                        value={openProductVersion}
+                        onChange={(e) => setOpenProductVersion(e.target.value)}
+                        placeholder="如：V2.1.0-Patch"
+                        className="w-full px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-mono font-bold text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 2. 授权模式 */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-700">授权模式 *</label>
                     <div className="grid grid-cols-2 gap-3">
                       <label
                         onClick={() => setOpenVersion('正式版')}
@@ -1316,7 +1438,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                     </div>
                   </div>
 
-                  {/* 服务到期日期 */}
+                  {/* 3. 服务到期日期 */}
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">

@@ -389,27 +389,24 @@ export const AppBasicConfigPanel: React.FC<AppBasicConfigPanelProps> = ({
       {/* 统一大框体内结构：包含左侧子菜单 + 右侧对应子内容 */}
       <div className="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col md:flex-row flex-1 min-h-[620px] overflow-hidden" id="app_basic_config_unified_card">
         
-        {/* 左侧菜单栏 (同一框内，中间一条竖线分割) */}
-        <div className="w-full md:w-52 lg:w-56 bg-slate-50/70 md:border-r border-b md:border-b-0 border-slate-200/80 shrink-0 flex flex-col">
-          <nav className="flex-1 divide-y divide-slate-200/80" id="nav_app_config_submenu">
+        {/* 左侧菜单栏 (严格遵循截图样式：纯白卡片、精致内边距、左侧深蓝竖条指示高亮、去除右箭头与小圆点) */}
+        <div className="w-full md:w-52 lg:w-56 bg-white md:border-r border-b md:border-b-0 border-slate-200/80 shrink-0 flex flex-col">
+          <nav className="flex-1 divide-y divide-slate-100" id="nav_app_config_submenu">
             {/* (a) 基本信息 */}
             <button
               type="button"
               onClick={() => setAppConfigSubTab('basic_info')}
               id="submenu_basic_info"
-              className={`w-full px-4 py-3.5 flex items-center justify-between text-left transition-all cursor-pointer select-none text-xs font-bold ${
+              className={`w-full px-5 py-4 flex items-center text-left transition-all cursor-pointer select-none text-[13px] ${
                 appConfigSubTab === 'basic_info'
-                  ? 'bg-white text-[#1e376b] font-black border-l-4 border-[#1e376b] shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                  ? 'bg-white text-[#1e376b] font-bold border-l-4 border-[#1e376b]'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/70 border-l-4 border-transparent font-medium'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <FileText className={`w-4 h-4 ${appConfigSubTab === 'basic_info' ? 'text-[#1e376b]' : 'text-slate-400'}`} />
+              <div className="flex items-center gap-3">
+                <FileText className={`w-4 h-4 shrink-0 ${appConfigSubTab === 'basic_info' ? 'text-[#1e376b]' : 'text-slate-500'}`} />
                 <span>基本信息</span>
               </div>
-              {appConfigSubTab === 'basic_info' && (
-                <ChevronRight className="w-3.5 h-3.5 text-[#1e376b]" />
-              )}
             </button>
 
             {/* (b) 公众号设置 */}
@@ -417,19 +414,16 @@ export const AppBasicConfigPanel: React.FC<AppBasicConfigPanelProps> = ({
               type="button"
               onClick={() => setAppConfigSubTab('wechat_official')}
               id="submenu_wechat_official"
-              className={`w-full px-4 py-3.5 flex items-center justify-between text-left transition-all cursor-pointer select-none text-xs font-bold ${
+              className={`w-full px-5 py-4 flex items-center text-left transition-all cursor-pointer select-none text-[13px] ${
                 appConfigSubTab === 'wechat_official'
-                  ? 'bg-white text-[#1e376b] font-black border-l-4 border-[#1e376b] shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                  ? 'bg-white text-[#1e376b] font-bold border-l-4 border-[#1e376b]'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/70 border-l-4 border-transparent font-medium'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <MessageSquare className={`w-4 h-4 ${appConfigSubTab === 'wechat_official' ? 'text-[#1e376b]' : 'text-slate-400'}`} />
+              <div className="flex items-center gap-3">
+                <MessageSquare className={`w-4 h-4 shrink-0 ${appConfigSubTab === 'wechat_official' ? 'text-[#1e376b]' : 'text-slate-500'}`} />
                 <span>公众号设置</span>
               </div>
-              {appConfigSubTab === 'wechat_official' && (
-                <ChevronRight className="w-3.5 h-3.5 text-[#1e376b]" />
-              )}
             </button>
 
             {/* (c) 应用发布 */}
@@ -437,23 +431,16 @@ export const AppBasicConfigPanel: React.FC<AppBasicConfigPanelProps> = ({
               type="button"
               onClick={() => setAppConfigSubTab('app_publish')}
               id="submenu_app_publish"
-              className={`w-full px-4 py-3.5 flex items-center justify-between text-left transition-all cursor-pointer select-none text-xs font-bold ${
+              className={`w-full px-5 py-4 flex items-center text-left transition-all cursor-pointer select-none text-[13px] ${
                 appConfigSubTab === 'app_publish'
-                  ? 'bg-white text-[#1e376b] font-black border-l-4 border-[#1e376b] shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                  ? 'bg-white text-[#1e376b] font-bold border-l-4 border-[#1e376b]'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/70 border-l-4 border-transparent font-medium'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <Send className={`w-4 h-4 ${appConfigSubTab === 'app_publish' ? 'text-[#1e376b]' : 'text-slate-400'}`} />
+              <div className="flex items-center gap-3">
+                <Send className={`w-4 h-4 shrink-0 ${appConfigSubTab === 'app_publish' ? 'text-[#1e376b]' : 'text-slate-500'}`} />
                 <span>应用发布</span>
               </div>
-              {appConfigSubTab === 'app_publish' ? (
-                <ChevronRight className="w-3.5 h-3.5 text-[#1e376b]" />
-              ) : (
-                <span className={`w-2 h-2 rounded-full shrink-0 ${
-                  currentStatus === 'published' ? 'bg-emerald-500' : currentStatus === 'disabled' ? 'bg-rose-500' : 'bg-blue-500'
-                }`} />
-              )}
             </button>
           </nav>
         </div>

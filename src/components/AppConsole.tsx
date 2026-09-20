@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   ArrowLeft,
+  FileText,
   Boxes,
   Check,
   LayoutGrid,
@@ -47,6 +48,9 @@ import {
   Upload,
   UploadCloud,
   Image as ImageIcon,
+  QrCode,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { SysMenuItem, INITIAL_DITING_MENUS, AvailableComponentOption } from './MenuManage';
 import { MenuManage } from './MenuManage';
@@ -98,11 +102,10 @@ interface AppConsoleProps {
 }
 
 const NAV: Array<{ id: ConsolePane; label: string; icon: React.ElementType }> = [
-  { id: 'basic', label: '基本信息', icon: Boxes },
+  { id: 'basic', label: '应用基本配置', icon: FileText },
   { id: 'endpoints', label: '访问端管理', icon: Monitor },
-  { id: 'components', label: '组件库管理', icon: Library },
   { id: 'menus', label: '菜单配置', icon: LayoutList },
-  { id: 'publish', label: '版本发布', icon: Send },
+  { id: 'components', label: '组件库管理', icon: Library },
 ];
 
 const epKindIconMap: Record<string, React.ElementType> = {
@@ -137,7 +140,29 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
   sharedMenus,
   onSharedMenusChange,
 }) => {
-  const [pane, setPane] = useState<ConsolePane>(initialPane);
+  const [pane, setPane] = useState<ConsolePane>(initialPane === 'publish' ? 'basic' : initialPane);
+  const [basicSubTab, setBasicSubTab] = useState<'basic_info' | 'wechat_official' | 'app_publish'>(
+    initialPane === 'publish' ? 'app_publish' : 'basic_info'
+  );
+
+  useEffect(() => {
+    if (pane === 'publish') {
+      setPane('basic');
+      setBasicSubTab('app_publish');
+    }
+  }, [pane]);
+  const [wechatConfig, setWechatConfig] = useState({
+    mpName: `${product.name}服务号`,
+    appId: 'wx88e2f69a12c4819d',
+    appSecret: '8a91f3b2049102ef76a819c9e8210341',
+    token: 'wxb_platform_token_2026',
+    encodingAesKey: 'kL39sJkd82mNsp91kLmz819kLms8271nSkld9182kLm',
+    welcomeMsg: `欢迎关注【${product.name}】官方服务号！`,
+    firstActivationMsg: `您好，您的专属邀请码已成功激活，欢迎进入【${product.name}】开展协同作业。`,
+    activatedWelcomeMsg: `欢迎回到【${product.name}】，点击下方菜单可快速进入系统。`,
+    qrCode: '',
+  });
+  const [isWechatSecretVisible, setIsWechatSecretVisible] = useState(false);
   const [activeEp, setActiveEp] = useState(endpoints[0]?.id || '');
   const [openingHosts, setOpeningHosts] = useState<Partial<Record<EndpointKind, string>>>({});
   const [domainHost, setDomainHost] = useState('');
@@ -152,7 +177,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
   // Pre-publish inspection confirm & success dialogs
   const [showPrePublishConfirmModal, setShowPrePublishConfirmModal] = useState(false);
   const [showPublishSuccessModal, setShowPublishSuccessModal] = useState(false);
-  const [showDraftConfirmModal, setShowDraftConfirmModal] = useState(false);
 
   // Basic Info Inline Edit mode
   const [isEditingBasic, setIsEditingBasic] = useState(false);
@@ -172,27 +196,46 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
   });
 
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
+
+  const processAvatarFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      showToast('请上传有效的图片格式文件 (JPG, PNG, SVG, WebP)', 'warning');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('LOGO图片不能超过 2MB', 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const result = evt.target?.result as string;
+      if (result) {
+        setEditBasicForm((prev) => ({
+          ...prev,
+          productAvatar: result,
+          productAvatarType: 'image',
+        }));
+        showToast('产品LOGO已成功上传，已作为唯一LOGO展示', 'success');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        showToast('头像图片不能超过 2MB', 'warning');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const result = evt.target?.result as string;
-        if (result) {
-          setEditBasicForm((prev) => ({
-            ...prev,
-            productAvatar: result,
-            productAvatarType: 'image',
-          }));
-          showToast('已上传自定义产品头像', 'success');
-        }
-      };
-      reader.readAsDataURL(file);
+      processAvatarFile(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleAvatarDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingAvatar(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processAvatarFile(file);
     }
   };
 
@@ -208,7 +251,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
   const [compFilterTab, setCompFilterTab] = useState<'all' | 'bound' | 'unbound' | 'platform' | 'private'>('all');
   const [compKernelFilter, setCompKernelFilter] = useState('all');
   const [compViewMode, setCompViewMode] = useState<'grid' | 'table'>('grid');
-  const [compGroupByKernel, setCompGroupByKernel] = useState(false);
+  const [compGroupByKernel] = useState(true);
 
   // Menus search
   const [menuSearch, setMenuSearch] = useState('');
@@ -343,10 +386,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
       showToast('产品名称不能为空', 'warning');
       return;
     }
-    if (!editBasicForm.name.trim()) {
-      showToast('实例名称不能为空', 'warning');
-      return;
-    }
 
     if (onChangeProduct) {
       onChangeProduct({
@@ -362,15 +401,8 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
       });
     }
 
-    onChangeInstance({
-      ...instance,
-      name: editBasicForm.name.trim(),
-      deployMode: editBasicForm.deployMode,
-      orgScope: editBasicForm.orgScope.trim(),
-      isolation: editBasicForm.isolation.trim(),
-    });
     setIsEditingBasic(false);
-    showToast('产品与实例基本信息已成功更新', 'success');
+    showToast('产品基本信息已成功更新', 'success');
   };
 
   // Cancel inline edit
@@ -446,6 +478,26 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
       menuIssues.push(`访问端「${epsWithoutMenus.join('、')}」尚未配置菜单树`);
     }
 
+    // 5. WeChat Official Account Check
+    const wechatIssues: string[] = [];
+    const hasMpName = Boolean(wechatConfig.mpName && wechatConfig.mpName.trim().length > 0);
+    const hasAppId = Boolean(wechatConfig.appId && wechatConfig.appId.trim().startsWith('wx') && wechatConfig.appId.trim().length >= 8);
+    const hasAppSecret = Boolean(wechatConfig.appSecret && wechatConfig.appSecret.trim().length >= 16);
+    const hasToken = Boolean(wechatConfig.token && wechatConfig.token.trim().length > 0);
+
+    if (!hasMpName) {
+      wechatIssues.push('未配置公众号服务号名称');
+    }
+    if (!hasAppId) {
+      wechatIssues.push('未配置有效的微信开发者 ID (AppID)');
+    }
+    if (!hasAppSecret) {
+      wechatIssues.push('未配置微信开发者密钥 (AppSecret)');
+    }
+    if (!hasToken) {
+      wechatIssues.push('未配置微信消息验证 Token');
+    }
+
     const checks = [
       {
         id: 'basic' as const,
@@ -453,7 +505,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
         status: basicIssues.length === 0 ? 'pass' : 'fail',
         issues: basicIssues,
         description: `实例名称「${instance.name}」· 部署模式「${instance.deployMode}」· 隔离「${instance.isolation}」`,
-        actionLabel: '查看/修改基础信息',
+        actionLabel: '修改基础信息',
         targetPane: 'basic' as ConsolePane,
         icon: Boxes,
       },
@@ -487,6 +539,16 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
         targetPane: 'menus' as ConsolePane,
         icon: LayoutList,
       },
+      {
+        id: 'wechat' as const,
+        name: '05 公众号设置检查',
+        status: (hasMpName && hasAppId && hasAppSecret && hasToken) ? 'pass' : 'warning',
+        issues: wechatIssues,
+        description: `服务号「${wechatConfig.mpName || '未命名'}」· AppID: ${wechatConfig.appId ? (wechatConfig.appId.slice(0, 6) + '***') : '未配置'} · Token: ${hasToken ? '已设置' : '未设置'}`,
+        actionLabel: '前往公众号设置',
+        targetPane: 'basic' as ConsolePane,
+        icon: MessageSquare,
+      },
     ];
 
     const passCount = checks.filter((c) => c.status === 'pass').length;
@@ -502,14 +564,15 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
       isFullyReady: passCount === checks.length,
       totalMenusAcrossEps,
     };
-  }, [instance, endpoints, domains, deployedCount, sharedMenus]);
+  }, [instance, endpoints, domains, deployedCount, sharedMenus, wechatConfig]);
 
   // Switch status with validation
   const handleStatusChange = (newStatus: AppInstance['status']) => {
     // 只有正式发布的实例才可以开启运行
     if (newStatus === 'running' && instance.publishStatus !== 'published') {
-      showToast('该实例尚未正式发布，无法直接启动运行！请在「版本发布」中完成4项检查并正式发布。', 'warning');
-      setPane('publish');
+      showToast('该实例尚未正式发布，无法直接启动运行！请在「应用发布」中完成5项检查并正式发布。', 'warning');
+      setPane('basic');
+      setBasicSubTab('app_publish');
       setShowStatusDropdown(false);
       return;
     }
@@ -564,23 +627,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
     }
 
     executePublish();
-  };
-
-  const handleUnpublishToDraft = () => {
-    onChangeInstance({
-      ...instance,
-      publishStatus: 'unpublished',
-      status: 'draft',
-    });
-    if (onChangeProduct) {
-      onChangeProduct({
-        ...product,
-        publishStatus: 'unpublished',
-        status: 'disabled',
-      });
-    }
-    setShowDraftConfirmModal(false);
-    showToast('已取消正式发布，实例已重置为「草稿」状态，产品已自动禁用', 'info');
   };
 
   const setComponentBound = (moduleKey: string, bound: boolean) => {
@@ -1118,6 +1164,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                     onChange={(e) => setPrivateKernel(e.target.value)}
                     className="px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:border-[#1e376b] focus:outline-none cursor-pointer"
                   >
+                    <option value="标准能力库">标准能力库</option>
                     <option value="业务核">业务核</option>
                     <option value="组织核">组织核</option>
                     <option value="开通核">开通核</option>
@@ -1225,7 +1272,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-lg font-black text-slate-900 tracking-tight">{instance.name}</h1>
-                <span className="text-xs text-slate-400 font-mono font-medium">#{instance.id}</span>
                 {product.themeColor && (
                   <span 
                     className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-2xs"
@@ -1236,17 +1282,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                <span>产品名称: <strong className="text-slate-800">{product.name}</strong></span>
-                <span>·</span>
-                <span>版本: <strong className="font-mono text-slate-700">{product.version}</strong></span>
-                <span>·</span>
-                <span>创建日期: <strong className="text-slate-700">{product.createdAt || instance.createdAt || '2025-11-02'}</strong></span>
-                <span>·</span>
-                <span>部署方式: <strong className="text-slate-700">{instance.deployMode}</strong></span>
-                <span>·</span>
-                <span>机构服务: <strong className="text-slate-700">{instance.orgScope}</strong></span>
-              </p>
             </div>
           </div>
 
@@ -1310,12 +1345,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = pane === item.id;
-            
-            // Badge calculation
-            let badgeText = '';
-            if (item.id === 'endpoints') badgeText = `${endpoints.length}`;
-            if (item.id === 'components') badgeText = `${deployedCount}`;
-            if (item.id === 'menus') badgeText = `${currentEp ? currentEp.modules.length : 0}`;
 
             return (
               <button
@@ -1331,13 +1360,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
               >
                 <Icon className={`w-3.5 h-3.5 ${active ? 'text-[#1e376b]' : 'text-slate-400'}`} />
                 <span>{item.label}</span>
-                {badgeText && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    active ? 'bg-[#1e376b] text-white' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {badgeText}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -1348,19 +1370,79 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
       <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
         <div className="w-full flex flex-col gap-4">
 
-          {/* TAB 1: 基本信息 (Basic) */}
+          {/* TAB 1: 应用基本配置 (Basic) */}
           {pane === 'basic' && (
-            <div className="flex flex-col gap-5">
-              {/* Product Core Profile Card */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs flex flex-col gap-5">
+            <div className="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col md:flex-row flex-1 min-h-[620px] overflow-hidden" id="console_basic_config_unified_card">
+              {/* 左侧菜单栏 (缩窄宽度适配文字：纯白卡片、适度内边距、左侧深蓝竖条高亮指示) */}
+              <div className="w-full md:w-36 lg:w-36 bg-white md:border-r border-b md:border-b-0 border-slate-200/80 shrink-0 flex flex-col">
+                <nav className="flex-1 divide-y divide-slate-100" id="nav_console_basic_submenu">
+                  {/* (a) 基本信息 */}
+                  <button
+                    type="button"
+                    onClick={() => setBasicSubTab('basic_info')}
+                    id="console_submenu_basic_info"
+                    className={`w-full px-3.5 py-3.5 flex items-center text-left transition-all cursor-pointer select-none text-xs ${
+                      basicSubTab === 'basic_info'
+                        ? 'bg-white text-[#1e376b] font-bold border-l-4 border-[#1e376b]'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/70 border-l-4 border-transparent font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className={`w-4 h-4 shrink-0 ${basicSubTab === 'basic_info' ? 'text-[#1e376b]' : 'text-slate-500'}`} />
+                      <span className="whitespace-nowrap">基本信息</span>
+                    </div>
+                  </button>
+
+                  {/* (b) 公众号设置 */}
+                  <button
+                    type="button"
+                    onClick={() => setBasicSubTab('wechat_official')}
+                    id="console_submenu_wechat_official"
+                    className={`w-full px-3.5 py-3.5 flex items-center text-left transition-all cursor-pointer select-none text-xs ${
+                      basicSubTab === 'wechat_official'
+                        ? 'bg-white text-[#1e376b] font-bold border-l-4 border-[#1e376b]'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/70 border-l-4 border-transparent font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className={`w-4 h-4 shrink-0 ${basicSubTab === 'wechat_official' ? 'text-[#1e376b]' : 'text-slate-500'}`} />
+                      <span className="whitespace-nowrap">公众号设置</span>
+                    </div>
+                  </button>
+
+                  {/* (c) 应用发布 */}
+                  <button
+                    type="button"
+                    onClick={() => setBasicSubTab('app_publish')}
+                    id="console_submenu_app_publish"
+                    className={`w-full px-3.5 py-3.5 flex items-center text-left transition-all cursor-pointer select-none text-xs ${
+                      basicSubTab === 'app_publish'
+                        ? 'bg-white text-[#1e376b] font-bold border-l-4 border-[#1e376b]'
+                        : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/70 border-l-4 border-transparent font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Send className={`w-4 h-4 shrink-0 ${basicSubTab === 'app_publish' ? 'text-[#1e376b]' : 'text-slate-500'}`} />
+                      <span className="whitespace-nowrap">应用发布</span>
+                    </div>
+                  </button>
+                </nav>
+              </div>
+
+              {/* 右侧主内容区 */}
+              <div className="flex-1 min-w-0 p-6 flex flex-col gap-6 overflow-y-auto">
+                {basicSubTab === 'basic_info' && (
+                  <div className="flex flex-col gap-5">
+                    {/* Product Core Profile Card */}
+                    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#1e376b] flex items-center justify-center font-bold">
                       <Boxes className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-black text-slate-900">产品与实例基本信息</h2>
-                      <p className="text-xs text-slate-500 mt-0.5">展示与维护产品名称、描述、主题色、产品头像、创建日期及实例部署参数。</p>
+                      <h2 className="text-sm font-black text-slate-900">产品基本信息</h2>
+                      <p className="text-xs text-slate-500 mt-0.5">展示与维护产品名称、描述、主题色及产品LOGO。</p>
                     </div>
                   </div>
                   {!isEditingBasic ? (
@@ -1410,11 +1492,11 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                 </div>
 
                 {!isEditingBasic ? (
-                  /* Read-only view prominently featuring the requested 5 fields */
+                  /* Read-only view prominently featuring the requested fields */
                   <div className="flex flex-col gap-6">
                     {/* Top Prominent Showcase Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gradient-to-r from-slate-50/80 via-blue-50/20 to-slate-50/80 p-4 rounded-xl border border-slate-100">
-                      {/* Product Avatar & Name */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-r from-slate-50/80 via-blue-50/20 to-slate-50/80 p-4 rounded-xl border border-slate-100">
+                      {/* Product LOGO & Name */}
                       <div className="flex items-center gap-3.5">
                         {product.avatarType === 'image' && product.avatar?.startsWith('data:') ? (
                           <img
@@ -1437,7 +1519,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                           </div>
                         )}
                         <div>
-                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">产品头像与名称</span>
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">产品LOGO与名称</span>
                           <div className="flex items-center gap-2 mt-0.5">
                             <h3 className="text-base font-black text-slate-900">{product.name}</h3>
                             <button
@@ -1471,20 +1553,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                           </div>
                         </div>
                       </div>
-
-                      {/* Creation Date */}
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200/70 shadow-2xs">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold shrink-0">
-                          <Calendar className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <div>
-                          <span className="text-[11px] font-bold text-slate-400">创建日期</span>
-                          <div className="text-xs font-bold text-slate-800 font-mono mt-0.5">
-                            {product.createdAt || instance.createdAt || '2025-11-02'}
-                          </div>
-                          <span className="text-[10px] text-slate-400">初始化归档时间</span>
-                        </div>
-                      </div>
                     </div>
 
                     {/* Product Description Block */}
@@ -1507,29 +1575,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                         {product.description}
                       </p>
                     </div>
-
-                    {/* Instance Specifications Grid */}
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900 mb-3 pb-1 border-b border-slate-100">实例运行规格与策略</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                        <div className="bg-slate-50/70 p-3 rounded-lg border border-slate-100">
-                          <div className="text-[11px] text-slate-400 font-medium">实例名称</div>
-                          <div className="font-bold text-slate-800 mt-1">{instance.name}</div>
-                        </div>
-                        <div className="bg-slate-50/70 p-3 rounded-lg border border-slate-100">
-                          <div className="text-[11px] text-slate-400 font-medium">部署方式</div>
-                          <div className="font-bold text-slate-800 mt-1">{instance.deployMode}</div>
-                        </div>
-                        <div className="bg-slate-50/70 p-3 rounded-lg border border-slate-100">
-                          <div className="text-[11px] text-slate-400 font-medium">数据隔离策略</div>
-                          <div className="font-bold text-slate-800 mt-1">{instance.isolation}</div>
-                        </div>
-                        <div className="bg-slate-50/70 p-3 rounded-lg border border-slate-100">
-                          <div className="text-[11px] text-slate-400 font-medium">机构服务范围</div>
-                          <div className="font-bold text-slate-800 mt-1">{instance.orgScope}</div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 ) : (
                   /* Edit Mode View with Full Product & Instance Synchronization */
@@ -1538,7 +1583,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                       产品基本信息配置 (同步更新)
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
                       {/* Product Name */}
                       <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
                         产品名称 *
@@ -1547,17 +1592,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                           onChange={(e) => setEditBasicForm(prev => ({ ...prev, productName: e.target.value }))}
                           placeholder="例如：谛听·特情智评系统"
                           className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:border-[#1e376b] focus:outline-none"
-                        />
-                      </label>
-
-                      {/* Creation Date */}
-                      <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
-                        创建日期
-                        <input
-                          type="date"
-                          value={editBasicForm.productCreatedAt}
-                          onChange={(e) => setEditBasicForm(prev => ({ ...prev, productCreatedAt: e.target.value }))}
-                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium bg-white focus:border-[#1e376b] focus:outline-none"
                         />
                       </label>
                     </div>
@@ -1575,17 +1609,18 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
                         {THEME_COLOR_PRESETS.map((preset) => {
-                          const isSelected = editBasicForm.productThemeColor === preset.color;
+                          const presetColor = preset.color || preset.hex;
+                          const isSelected = editBasicForm.productThemeColor === presetColor;
                           return (
                             <button
-                              key={preset.id}
+                              key={preset.id || preset.key}
                               type="button"
                               onClick={() => {
                                 setEditBasicForm(prev => ({
                                   ...prev,
-                                  productThemeColor: preset.color,
+                                  productThemeColor: presetColor,
                                   productThemeColorName: preset.name,
-                                  productIconBg: preset.iconBg,
+                                  productIconBg: preset.iconBg || preset.bgGradient,
                                 }));
                               }}
                               className={`p-2 rounded-xl border flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
@@ -1596,92 +1631,125 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                             >
                               <div 
                                 className="w-6 h-6 rounded-full shadow-xs flex items-center justify-center text-white"
-                                style={{ backgroundColor: preset.color }}
+                                style={{ backgroundColor: presetColor }}
                               >
                                 {isSelected && <Check className="w-3.5 h-3.5" />}
                               </div>
                               <span className="text-[11px] font-bold text-slate-700 whitespace-nowrap">{preset.name}</span>
-                              <span className="text-[10px] font-mono text-slate-400">{preset.color}</span>
+                              <span className="text-[10px] font-mono text-slate-400">{presetColor}</span>
                             </button>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Product Avatar Selection & Upload */}
+                    {/* Product LOGO - Only 1 LOGO supported for upload and display */}
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                           <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
-                          产品头像 *
+                          产品LOGO *
                         </span>
                         <span className="text-xs text-slate-400">
-                          支持选择系统预置矢量头像或上传自定义图片
+                          仅支持上传展示 1 个产品LOGO (支持 JPG/PNG/SVG/WebP，不超过 2MB)
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2">
-                        {PRESET_AVATARS.map((item) => {
-                          const isSelected = editBasicForm.productAvatar === item.key && editBasicForm.productAvatarType !== 'image';
-                          const IconComp = item.icon;
-                          return (
+
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        className="hidden"
+                        onChange={handleAvatarFileUpload}
+                      />
+
+                      {editBasicForm.productAvatarType === 'image' && editBasicForm.productAvatar ? (
+                        /* Single LOGO Displayed View */
+                        <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-xl flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <img
+                              src={editBasicForm.productAvatar}
+                              alt="Product LOGO"
+                              className="w-14 h-14 rounded-xl object-cover border border-slate-300 shadow-xs shrink-0 bg-white"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-slate-800">当前产品LOGO</span>
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                  仅支持单LOGO展示
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-1">
+                                已上传独立产品LOGO图片，重新上传将直接覆盖替换当前LOGO。
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
                             <button
-                              key={item.key}
+                              type="button"
+                              onClick={() => avatarInputRef.current?.click()}
+                              className="px-3 py-1.5 border border-slate-300 hover:border-[#1e376b] text-slate-700 hover:text-[#1e376b] rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer bg-white hover:bg-blue-50/30 transition-colors shadow-2xs"
+                            >
+                              <Upload className="w-3.5 h-3.5 text-blue-600" />
+                              更换LOGO
+                            </button>
+                            <button
                               type="button"
                               onClick={() => {
                                 setEditBasicForm(prev => ({
                                   ...prev,
-                                  productAvatar: item.key,
+                                  productAvatar: 'Flame',
                                   productAvatarType: 'icon',
                                 }));
+                                showToast('已恢复系统默认LOGO', 'info');
                               }}
-                              className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                                isSelected
-                                  ? 'border-[#1e376b] ring-2 ring-[#1e376b]/20 bg-blue-50/50 shadow-xs'
-                                  : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                              }`}
+                              className="px-2.5 py-1.5 text-slate-400 hover:text-rose-600 rounded-lg text-xs font-medium cursor-pointer transition-colors"
                             >
-                              <div 
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-2xs"
-                                style={{ backgroundColor: editBasicForm.productThemeColor }}
-                              >
-                                <IconComp className="w-4 h-4" />
-                              </div>
-                              <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap truncate w-full text-center">
-                                {item.label}
-                              </span>
+                              重置默认
                             </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Custom Image Upload */}
-                      <div className="mt-1 flex items-center gap-3">
-                        <input
-                          ref={avatarInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleAvatarFileUpload}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => avatarInputRef.current?.click()}
-                          className="px-3 py-1.5 border border-dashed border-slate-300 hover:border-[#1e376b] text-slate-600 hover:text-[#1e376b] rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer bg-slate-50/50 hover:bg-blue-50/30 transition-colors"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          上传自定义头像图片 (JPG/PNG)
-                        </button>
-                        {editBasicForm.productAvatarType === 'image' && (
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={editBasicForm.productAvatar}
-                              alt="Avatar Preview"
-                              className="w-7 h-7 rounded-lg object-cover border border-slate-300"
-                            />
-                            <span className="text-xs text-emerald-600 font-bold">已选用自定义头像</span>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        /* Single LOGO Upload Dropzone */
+                        <div
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDraggingAvatar(true);
+                          }}
+                          onDragLeave={() => setIsDraggingAvatar(false)}
+                          onDrop={handleAvatarDrop}
+                          onClick={() => avatarInputRef.current?.click()}
+                          className={`p-4 border-2 border-dashed rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 cursor-pointer transition-all ${
+                            isDraggingAvatar
+                              ? 'border-[#1e376b] bg-blue-50/60 shadow-xs'
+                              : 'border-slate-200 hover:border-[#1e376b] bg-slate-50/50 hover:bg-blue-50/20'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-[#1e376b] flex items-center justify-center shrink-0 shadow-2xs">
+                              <UploadCloud className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <span>点击或拖拽上传产品LOGO</span>
+                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+                                  单LOGO唯一展示
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                仅支持上传展示 1 个产品LOGO，推荐正方形规格 (JPG / PNG / SVG / WebP，小于 2MB)
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#1e376b] shadow-2xs shrink-0 pointer-events-none"
+                          >
+                            选择图片上传
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Product Description */}
@@ -1695,51 +1763,503 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                         className="px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:border-[#1e376b] focus:outline-none leading-relaxed"
                       />
                     </label>
+                  </div>
+                )}
+                    </div>
+                  </div>
+                )}
 
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider pb-1 pt-2 border-b border-slate-100">
-                      实例运行规格配置
+                {/* 2. 公众号设置 */}
+                {basicSubTab === 'wechat_official' && (
+                  <div className="flex flex-col gap-6 max-w-3xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                      <div>
+                        <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-emerald-600" />
+                          <span>微信公众号（独立服务号）配置</span>
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-1">
+                          配置各业务应用专属绑定的微信服务号参数，实现微信生态免密登录、消息模板推送与扫码关注激活。
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => showToast('微信公众号设置已成功保存', 'success')}
+                        className="px-4 py-2 bg-[#1e376b] hover:bg-[#14264c] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors self-start sm:self-auto"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>保存配置</span>
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
-                        实例名称 *
+                        公众号服务号名称 *
                         <input
-                          value={editBasicForm.name}
-                          onChange={(e) => setEditBasicForm(prev => ({ ...prev, name: e.target.value }))}
-                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:border-[#1e376b] focus:outline-none"
+                          value={wechatConfig.mpName}
+                          onChange={(e) => setWechatConfig(prev => ({ ...prev, mpName: e.target.value }))}
+                          placeholder="例如：特情感知服务号"
+                          className="px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:border-emerald-500 focus:outline-none bg-slate-50 focus:bg-white"
                         />
                       </label>
-
                       <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
-                        部署方式
-                        <select
-                          value={editBasicForm.deployMode}
-                          onChange={(e) => setEditBasicForm(prev => ({ ...prev, deployMode: e.target.value as AppInstance['deployMode'] }))}
-                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium bg-white focus:border-[#1e376b] focus:outline-none"
+                        开发者 ID (AppID) *
+                        <input
+                          value={wechatConfig.appId}
+                          onChange={(e) => setWechatConfig(prev => ({ ...prev, appId: e.target.value }))}
+                          placeholder="例如：wx8888888888888888"
+                          className="px-3.5 py-2.5 font-mono border border-slate-200 rounded-xl text-xs font-medium focus:border-emerald-500 focus:outline-none bg-slate-50 focus:bg-white"
+                        />
+                      </label>
+                      <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
+                        开发者密码 (AppSecret) *
+                        <div className="relative">
+                          <input
+                            type={isWechatSecretVisible ? 'text' : 'password'}
+                            value={wechatConfig.appSecret}
+                            onChange={(e) => setWechatConfig(prev => ({ ...prev, appSecret: e.target.value }))}
+                            placeholder="请输入微信 AppSecret"
+                            className="w-full px-3.5 py-2.5 pr-10 font-mono border border-slate-200 rounded-xl text-xs font-medium focus:border-emerald-500 focus:outline-none bg-slate-50 focus:bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setIsWechatSecretVisible(!isWechatSecretVisible)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                          >
+                            {isWechatSecretVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </label>
+                      <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
+                        令牌 (Token) *
+                        <input
+                          value={wechatConfig.token}
+                          onChange={(e) => setWechatConfig(prev => ({ ...prev, token: e.target.value }))}
+                          placeholder="例如：wxb_platform_token"
+                          className="px-3.5 py-2.5 font-mono border border-slate-200 rounded-xl text-xs font-medium focus:border-emerald-500 focus:outline-none bg-slate-50 focus:bg-white"
+                        />
+                      </label>
+                    </div>
+
+                    <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
+                      消息加解密密钥 (EncodingAESKey)
+                      <input
+                        value={wechatConfig.encodingAesKey}
+                        onChange={(e) => setWechatConfig(prev => ({ ...prev, encodingAesKey: e.target.value }))}
+                        placeholder="请输入 43 位字符的消息加解密密钥"
+                        className="px-3.5 py-2.5 font-mono border border-slate-200 rounded-xl text-xs font-medium focus:border-emerald-500 focus:outline-none bg-slate-50 focus:bg-white"
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {/* 3. 应用发布 */}
+                {basicSubTab === 'app_publish' && (
+                  <div className="flex flex-col gap-5 max-w-4xl">
+                    {/* Header & Quick Actions */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <div className="flex items-center gap-2.5">
+                          <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                            <Send className="w-4 h-4 text-[#1e376b]" />
+                            <span>应用发布管理中心</span>
+                          </h2>
+                          {instance.publishStatus === 'published' ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              正式发布生效中
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              草稿待发布
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                          系统根据「基础信息、访问端、组件库、菜单配置、公众号设置」5 项核心指标进行发布自检，正式发布后各端域名即可对外提供访问。
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={handleFormalPublishClick}
+                          className="px-4.5 py-2 bg-[#1e376b] hover:bg-[#14264c] text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-xs hover:shadow transition-all active:scale-[0.98]"
                         >
-                          <option value="SaaS">SaaS (多租户公网)</option>
-                          <option value="专有云">专有云 (客户专有区)</option>
-                          <option value="专网">专网 (物理内网环境)</option>
-                        </select>
-                      </label>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>{instance.publishStatus === 'published' ? '重新检查并更新发布' : '一键正式发布上线'}</span>
+                        </button>
+                      </div>
+                    </div>
 
-                      <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
-                        机构服务范围
-                        <input
-                          value={editBasicForm.orgScope}
-                          onChange={(e) => setEditBasicForm(prev => ({ ...prev, orgScope: e.target.value }))}
-                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:border-[#1e376b] focus:outline-none"
-                        />
-                      </label>
+                    {/* Inspection summary bar */}
+                    <div className={`rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
+                      prePublishInspection.isFullyReady
+                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                        : prePublishInspection.hasBlockingFail
+                          ? 'bg-rose-50/70 border-rose-200 text-rose-950'
+                          : 'bg-amber-50/70 border-amber-200 text-amber-950'
+                    }`}>
+                      <div className="flex items-center gap-3.5">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          prePublishInspection.isFullyReady
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : prePublishInspection.hasBlockingFail
+                              ? 'bg-rose-100 text-rose-700'
+                              : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {prePublishInspection.isFullyReady ? (
+                            <CheckCircle2 className="w-5 h-5" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className="text-xs font-black">
+                              发布自检就绪度: {prePublishInspection.passCount} / {prePublishInspection.totalCount} 项指标已通过
+                            </span>
+                            <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                              prePublishInspection.isFullyReady
+                                ? 'bg-emerald-100/90 text-emerald-800 border-emerald-300'
+                                : 'bg-white text-slate-700 border-slate-200'
+                            }`}>
+                              {Math.round((prePublishInspection.passCount / prePublishInspection.totalCount) * 100)}% 就绪
+                            </span>
+                          </div>
+                          <p className="text-[11px] opacity-80 leading-relaxed">
+                            {prePublishInspection.isFullyReady
+                              ? '各项服务与配置均已就绪，具备上线条件，点击上方或下方按钮可立即正式发布生效。'
+                              : prePublishInspection.hasBlockingFail
+                                ? '检测到基础配置存在阻断项，请先完善对应模块后再执行正式发布。'
+                                : `存在 ${prePublishInspection.allWarnings.length} 项建议优化项（不影响直接发布上线），可按需完善。`}
+                          </p>
+                        </div>
+                      </div>
 
-                      <label className="text-xs font-bold text-slate-700 flex flex-col gap-1.5">
-                        数据隔离策略说明
-                        <input
-                          value={editBasicForm.isolation}
-                          onChange={(e) => setEditBasicForm(prev => ({ ...prev, isolation: e.target.value }))}
-                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:border-[#1e376b] focus:outline-none"
-                        />
-                      </label>
+                      {/* 5-segment mini progress indicator */}
+                      <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-center">
+                        {prePublishInspection.checks.map((c) => (
+                          <div
+                            key={c.id}
+                            className={`w-5 h-2 rounded-full transition-colors ${
+                              c.status === 'pass'
+                                ? 'bg-emerald-500'
+                                : c.status === 'warning'
+                                  ? 'bg-amber-400'
+                                  : 'bg-rose-400'
+                            }`}
+                            title={`${c.name}: ${c.status === 'pass' ? '已通过' : c.status === 'warning' ? '建议完善' : '存在阻断'}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 5 Core Inspection Cards Grid */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <span>发布前 5 项核心自检报告与快速跳转：</span>
+                        </span>
+                        <span className="text-[11px] text-slate-400">点击卡片内按钮可直接跳转至对应模块修改</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        {/* Card 1: 基础信息 */}
+                        <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 transition-all ${
+                          prePublishInspection.checks[0].status === 'pass'
+                            ? 'bg-slate-50/70 border-slate-200'
+                            : 'bg-rose-50/50 border-rose-200'
+                        }`}>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Boxes className="w-4 h-4 text-[#1e376b]" />
+                                <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[0].name}</h3>
+                              </div>
+                              {prePublishInspection.checks[0].status === 'pass' ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> 已通过
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <X className="w-2.5 h-2.5" /> 待完善
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-slate-600 flex flex-col gap-1 bg-white p-2.5 rounded-lg border border-slate-100">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 text-[11px]">实例名称:</span>
+                                <span className="font-bold text-slate-800">{instance.name || '未命名'}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 text-[11px]">所属产品:</span>
+                                <span className="font-medium text-slate-700 truncate max-w-[180px]">{product.name} ({product.code})</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 text-[11px]">部署 / 隔离:</span>
+                                <span className="font-medium text-slate-700">{instance.deployMode} · {instance.isolation}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setBasicSubTab('basic_info')}
+                            className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
+                          >
+                            <span>{prePublishInspection.checks[0].actionLabel}</span>
+                            <ArrowRight className="w-3 h-3 text-slate-400" />
+                          </button>
+                        </div>
+
+                        {/* Card 2: 访问端与域名 */}
+                        <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 transition-all ${
+                          prePublishInspection.checks[1].status === 'pass'
+                            ? 'bg-slate-50/70 border-slate-200'
+                            : 'bg-amber-50/50 border-amber-200'
+                        }`}>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Monitor className="w-4 h-4 text-[#1e376b]" />
+                                <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[1].name}</h3>
+                              </div>
+                              {prePublishInspection.checks[1].status === 'pass' ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> 已就绪 ({endpoints.length}端)
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <AlertCircle className="w-2.5 h-2.5" /> 存在待绑定端
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-slate-600 flex flex-col gap-1 bg-white p-2.5 rounded-lg border border-slate-100 max-h-32 overflow-y-auto">
+                              {endpoints.map((ep) => {
+                                const dom = domains.find((d) => d.id === ep.domainId);
+                                const isBound = Boolean(dom && dom.host && dom.host.trim());
+                                return (
+                                  <div key={ep.id} className="flex items-center justify-between gap-2 border-b border-slate-100/60 pb-1 last:border-0 last:pb-0">
+                                    <span className="font-bold text-slate-800 truncate">{ep.name}</span>
+                                    {isBound ? (
+                                      <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded shrink-0 flex items-center gap-1">
+                                        <Check className="w-2 h-2" /> {dom?.host}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded shrink-0">
+                                        ⚠️ 未绑定域名
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setPane('endpoints')}
+                            className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
+                          >
+                            <span>{prePublishInspection.checks[1].actionLabel}</span>
+                            <ArrowRight className="w-3 h-3 text-slate-400" />
+                          </button>
+                        </div>
+
+                        {/* Card 3: 组件库接入 */}
+                        <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 transition-all ${
+                          prePublishInspection.checks[2].status === 'pass'
+                            ? 'bg-slate-50/70 border-slate-200'
+                            : 'bg-amber-50/50 border-amber-200'
+                        }`}>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Library className="w-4 h-4 text-[#1e376b]" />
+                                <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[2].name}</h3>
+                              </div>
+                              {prePublishInspection.checks[2].status === 'pass' ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> 已接入 {deployedCount} 个
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <AlertCircle className="w-2.5 h-2.5" /> 建议接入
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-slate-600 flex flex-col gap-1 bg-white p-2.5 rounded-lg border border-slate-100">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 text-[11px]">组件库总数:</span>
+                                <span className="font-bold text-slate-800">{totalCompCount} 个能力组件</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 text-[11px]">已接入绑定:</span>
+                                <span className="font-bold text-emerald-700">{boundCompCount} 个 (平台 {platformCompCount} / 私有 {privateCompCount})</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 text-[11px]">未接入备用:</span>
+                                <span className="font-medium text-slate-500">{unboundCompCount} 个可按需接入</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setPane('components')}
+                            className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
+                          >
+                            <span>{prePublishInspection.checks[2].actionLabel}</span>
+                            <ArrowRight className="w-3 h-3 text-slate-400" />
+                          </button>
+                        </div>
+
+                        {/* Card 4: 菜单配置 */}
+                        <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 transition-all ${
+                          prePublishInspection.checks[3].status === 'pass'
+                            ? 'bg-slate-50/70 border-slate-200'
+                            : 'bg-amber-50/50 border-amber-200'
+                        }`}>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <LayoutList className="w-4 h-4 text-[#1e376b]" />
+                                <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[3].name}</h3>
+                              </div>
+                              {prePublishInspection.checks[3].status === 'pass' ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> 菜单已就绪 ({prePublishInspection.totalMenusAcrossEps}项)
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <AlertCircle className="w-2.5 h-2.5" /> 存在未配置端
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-slate-600 flex flex-col gap-1 bg-white p-2.5 rounded-lg border border-slate-100 max-h-32 overflow-y-auto">
+                              {endpoints.map((ep) => {
+                                const epMenus = ep.customMenus || sharedMenus || [];
+                                return (
+                                  <div key={ep.id} className="flex items-center justify-between gap-2 border-b border-slate-100/60 pb-1 last:border-0 last:pb-0">
+                                    <span className="font-bold text-slate-800 truncate">{ep.name}</span>
+                                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
+                                      epMenus.length > 0 ? 'text-blue-700 bg-blue-50' : 'text-amber-700 bg-amber-50'
+                                    }`}>
+                                      {epMenus.length > 0 ? `${epMenus.length} 项菜单` : '⚠️ 未配置菜单'}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setPane('menus')}
+                            className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
+                          >
+                            <span>{prePublishInspection.checks[3].actionLabel}</span>
+                            <ArrowRight className="w-3 h-3 text-slate-400" />
+                          </button>
+                        </div>
+
+                        {/* Card 5: 公众号设置 (New!) */}
+                        <div className={`p-4 rounded-xl border flex flex-col justify-between gap-3 transition-all md:col-span-2 ${
+                          prePublishInspection.checks[4].status === 'pass'
+                            ? 'bg-slate-50/70 border-slate-200'
+                            : 'bg-amber-50/50 border-amber-200'
+                        }`}>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4 text-[#1e376b]" />
+                                <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[4].name}</h3>
+                              </div>
+                              {prePublishInspection.checks[4].status === 'pass' ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> 已就绪
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <AlertCircle className="w-2.5 h-2.5" /> 建议完善
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-slate-600 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 bg-white p-2.5 rounded-lg border border-slate-100">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-slate-400 text-[10px]">服务号名称:</span>
+                                <span className="font-bold text-slate-800 truncate">{wechatConfig.mpName || '未命名'}</span>
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-slate-400 text-[10px]">开发者 AppID:</span>
+                                <span className="font-mono text-slate-700 truncate">{wechatConfig.appId ? `${wechatConfig.appId.slice(0, 6)}***` : '未配置'}</span>
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-slate-400 text-[10px]">接口验证 Token:</span>
+                                <span className="font-medium text-emerald-700">{wechatConfig.token ? '已设置 Token' : '未设置'}</span>
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-slate-400 text-[10px]">生态协同能力:</span>
+                                <span className="font-medium text-blue-700">微信免密扫码 / 消息通知</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setBasicSubTab('wechat_official')}
+                            className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
+                          >
+                            <span>{prePublishInspection.checks[4].actionLabel}</span>
+                            <ArrowRight className="w-3 h-3 text-slate-400" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Warning Issues Checklist Prompt Bar */}
+                    {prePublishInspection.allWarnings.length > 0 && (
+                      <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>发布前建议完善项 ({prePublishInspection.allWarnings.length} 项，不阻断正常上线):</span>
+                        </div>
+                        <ul className="text-xs text-amber-900/90 pl-6 list-disc space-y-1">
+                          {prePublishInspection.allWarnings.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Streamlined Bottom Fast Action Bar */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                        <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span>
+                          {instance.publishStatus === 'published'
+                            ? `已生效版本: ${instance.publishedVersion || product.version || 'V1.0-Release'} · 最近更新于 ${instance.lastPublishedAt || '今天'}`
+                            : `5项自检已达标 ${prePublishInspection.passCount} 项 · 确认无误后点击右侧按钮即可正式上线`}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={handleFormalPublishClick}
+                          className="px-4.5 py-2 bg-[#1e376b] hover:bg-[#14264c] text-white rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-xs transition-colors"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>{instance.publishStatus === 'published' ? '重新检查并更新发布' : '一键正式发布上线'}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2012,47 +2532,12 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
           {/* TAB 3: 组件库管理 (Components) */}
           {pane === 'components' && (
             <div className="flex flex-col gap-3.5">
-              {/* Compact Overview & Metric Bar */}
-              <div className="bg-white rounded-xl border border-slate-200 px-5 py-3 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="flex items-center gap-5 text-xs flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500">可用组件总数:</span>
-                    <span className="font-mono font-black text-slate-800 text-sm">{totalCompCount}</span>
-                  </div>
-                  <div className="h-3.5 w-px bg-slate-200" />
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500">已接入生效:</span>
-                    <span className="font-mono font-black text-emerald-600 text-sm">{boundCompCount}</span>
-                    <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded font-bold">
-                      {totalCompCount ? Math.round((boundCompCount / totalCompCount) * 100) : 0}%
-                    </span>
-                  </div>
-                  <div className="h-3.5 w-px bg-slate-200" />
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500">未接入组件:</span>
-                    <span className="font-mono font-black text-slate-400 text-sm">{unboundCompCount}</span>
-                  </div>
-                  <div className="h-3.5 w-px bg-slate-200" />
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500">私有化定制:</span>
-                    <span className="font-mono font-black text-amber-600 text-sm">{privateCompCount}</span>
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>在此绑定的组件，后续可在「菜单配置」中授权分配给各访问端。</span>
-                </div>
-              </div>
-
               {/* Compact Unified Toolbar */}
-              <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+              <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 {/* Left: Filter Tabs */}
                 <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg self-start overflow-x-auto max-w-full">
                   {[
                     { id: 'all', label: '全部', count: totalCompCount },
-                    { id: 'bound', label: '已绑定', count: boundCompCount, activeDot: 'bg-emerald-500' },
-                    { id: 'unbound', label: '未接入', count: unboundCompCount },
                     { id: 'platform', label: '平台公用', count: platformCompCount },
                     { id: 'private', label: '私有定制', count: privateCompCount },
                   ].map((tab) => {
@@ -2068,7 +2553,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                             : 'text-slate-500 hover:text-slate-800'
                         }`}
                       >
-                        {tab.activeDot && <span className={`w-1.5 h-1.5 rounded-full ${tab.activeDot}`} />}
                         <span>{tab.label}</span>
                         <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
                           active ? 'bg-blue-50 text-[#1e376b]' : 'bg-slate-200/70 text-slate-500'
@@ -2080,86 +2564,8 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                   })}
                 </div>
 
-                {/* Center: Search & Kernel Filter */}
-                <div className="flex items-center gap-2 flex-1 max-w-lg">
-                  <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      value={compSearch}
-                      onChange={(e) => setCompSearch(e.target.value)}
-                      placeholder="搜索组件名称、编码或说明..."
-                      className="w-full pl-8 pr-7 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:border-[#1e376b] focus:outline-none"
-                    />
-                    {compSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setCompSearch('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-
-                  <select
-                    value={compKernelFilter}
-                    onChange={(e) => setCompKernelFilter(e.target.value)}
-                    aria-label="筛选组件内核"
-                    className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-700 bg-white focus:border-[#1e376b] focus:outline-none cursor-pointer shrink-0"
-                  >
-                    <option value="all">全部内核</option>
-                    <option value="业务核">业务核</option>
-                    <option value="组织核">组织核</option>
-                    <option value="开通核">开通核</option>
-                  </select>
-                </div>
-
-                {/* Right: Layout Switcher & Actions */}
-                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                  {/* Group & View Switchers */}
-                  <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
-                    <button
-                      type="button"
-                      onClick={() => setCompGroupByKernel(!compGroupByKernel)}
-                      className={`px-2 py-1 rounded-md text-xs font-medium cursor-pointer flex items-center gap-1 transition-all ${
-                        compGroupByKernel
-                          ? 'bg-white text-[#1e376b] font-bold shadow-xs'
-                          : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                      title="按组件内核架构分组呈现"
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span className="text-[11px]">按内核分组</span>
-                    </button>
-
-                    <div className="w-px h-3.5 bg-slate-300 mx-0.5" />
-
-                    <button
-                      type="button"
-                      onClick={() => setCompViewMode('grid')}
-                      className={`p-1.5 rounded-md cursor-pointer transition-all ${
-                        compViewMode === 'grid'
-                          ? 'bg-white text-[#1e376b] shadow-xs'
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                      title="卡片网格视图（视觉清晰，支持开关一键接入）"
-                    >
-                      <LayoutGrid className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCompViewMode('table')}
-                      className={`p-1.5 rounded-md cursor-pointer transition-all ${
-                        compViewMode === 'table'
-                          ? 'bg-white text-[#1e376b] shadow-xs'
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                      title="紧凑表格视图（高密度展示）"
-                    >
-                      <LayoutList className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
+                {/* Right: Actions */}
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setShowAddPrivateModal(true)}
@@ -2168,25 +2574,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                     <Plus className="w-3.5 h-3.5" />
                     注册私有组件
                   </button>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={bindAllPlatformComponents}
-                      className="px-2.5 py-1.5 border border-slate-200 text-slate-700 hover:text-[#1e376b] hover:border-blue-200 hover:bg-blue-50/50 rounded-lg text-xs font-bold cursor-pointer transition-colors whitespace-nowrap"
-                      title="将所有平台公用组件一键绑定至本实例"
-                    >
-                      全部绑定
-                    </button>
-                    <button
-                      type="button"
-                      onClick={unbindAllPlatformComponents}
-                      className="px-2.5 py-1.5 border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 rounded-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap"
-                      title="清空所有绑定组件"
-                    >
-                      全部解绑
-                    </button>
-                  </div>
                 </div>
               </div>
 
@@ -2527,7 +2914,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                       <span className="font-bold text-[#1e376b] bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span>{currentEp.name}</span>
-                        <span className="text-[10px] text-slate-500 font-normal">({ENDPOINT_KINDS[currentEp.kind]?.typeLabel || currentEp.kind})</span>
+                        <span className="text-[10px] text-slate-500 font-normal">({ENDPOINT_KINDS.find((k) => k.key === currentEp.kind)?.typeLabel || currentEp.kind})</span>
                       </span>
                     </div>
                   )}
@@ -2555,7 +2942,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                           isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
                         }`}>
-                          {ENDPOINT_KINDS[ep.kind]?.typeLabel || ep.kind}
+                          {ENDPOINT_KINDS.find((k) => k.key === ep.kind)?.typeLabel || ep.kind}
                         </span>
                         <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
                           isSelected ? 'bg-white/15 text-white' : 'bg-blue-50 text-blue-700'
@@ -2593,361 +2980,11 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
             </div>
           )}
 
-          {/* TAB 5: 版本发布 (Publish) */}
+          {/* TAB 5: Fallback for publish pane (auto navigated to basic -> app_publish) */}
           {pane === 'publish' && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs flex flex-col gap-6">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-black text-slate-900">版本发布与上线运维中心</h2>
-                    {instance.publishStatus === 'published' ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shadow-2xs">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        正式发布生效中
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shadow-2xs">
-                        <AlertCircle className="w-3 h-3 text-amber-600" />
-                        草稿待发布
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    系统根据「基础信息、访问端、组件库、菜单配置」4 项核心指标进行发布自检，正式发布后各端域名即可对外提供访问，并自动同步产品【启用】状态。
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`px-3 py-1.5 rounded-full border text-xs font-bold flex items-center gap-1.5 shadow-2xs ${statusClass[instance.status]}`}>
-                    <span className={`w-2 h-2 rounded-full ${instance.status === 'running' ? 'bg-emerald-500 animate-pulse' : instance.status === 'stopped' ? 'bg-slate-400' : 'bg-amber-500'}`} />
-                    <span>实例运行状态: {statusLabel[instance.status]}</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Top Inspection Progress & Readiness Summary Bar */}
-              <div className={`rounded-xl border p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                prePublishInspection.isFullyReady
-                  ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
-                  : prePublishInspection.hasBlockingFail
-                    ? 'bg-rose-50/60 border-rose-200 text-rose-900'
-                    : 'bg-amber-50/60 border-amber-200 text-amber-900'
-              }`}>
-                <div className="flex items-start gap-3.5">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    prePublishInspection.isFullyReady
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : prePublishInspection.hasBlockingFail
-                        ? 'bg-rose-100 text-rose-700'
-                        : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {prePublishInspection.isFullyReady ? (
-                      <CheckCircle2 className="w-5 h-5" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-black">
-                        发布前自检就绪度: {prePublishInspection.passCount} / {prePublishInspection.totalCount} 项指标已通过
-                      </span>
-                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-white/80 border border-current/20">
-                        {Math.round((prePublishInspection.passCount / prePublishInspection.totalCount) * 100)}% 就绪
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleFormalPublishClick}
-                    className="px-5 py-2.5 bg-[#1e376b] hover:bg-[#14264c] text-white rounded-lg text-xs font-bold cursor-pointer flex items-center gap-2 shadow-xs transition-colors"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{instance.publishStatus === 'published' ? '重新检查并更新发布' : '执行正式发布上线'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 4 Core Inspection Cards Grid */}
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <span>发布前 4 项核心自检报告与快速跳转：</span>
-                  </span>
-                  <span className="text-[11px] text-slate-400">点击卡片内按钮可直接跳转至对应功能模块修改</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Card 1: 基础信息 */}
-                  <div className={`p-4.5 rounded-xl border flex flex-col justify-between gap-3.5 transition-all ${
-                    prePublishInspection.checks[0].status === 'pass'
-                      ? 'bg-slate-50/70 border-slate-200'
-                      : 'bg-rose-50/50 border-rose-200'
-                  }`}>
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Boxes className="w-4 h-4 text-[#1e376b]" />
-                          <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[0].name}</h3>
-                        </div>
-                        {prePublishInspection.checks[0].status === 'pass' ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Check className="w-2.5 h-2.5" /> 已通过
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <X className="w-2.5 h-2.5" /> 待完善
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-xs text-slate-600 flex flex-col gap-1.5 bg-white p-3 rounded-lg border border-slate-100">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 text-[11px]">实例名称:</span>
-                          <span className="font-bold text-slate-800">{instance.name || '未命名'}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 text-[11px]">所属产品:</span>
-                          <span className="font-medium text-slate-700">{product.name} ({product.code} {product.version})</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 text-[11px]">部署 / 隔离:</span>
-                          <span className="font-medium text-slate-700">{instance.deployMode} · {instance.isolation}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 text-[11px]">组织机构范围:</span>
-                          <span className="font-medium text-slate-700">{instance.orgScope || '全局组织'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setPane('basic')}
-                      className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
-                    >
-                      <span>{prePublishInspection.checks[0].actionLabel}</span>
-                      <ArrowRight className="w-3 h-3 text-slate-400" />
-                    </button>
-                  </div>
-
-                  {/* Card 2: 访问端与域名 */}
-                  <div className={`p-4.5 rounded-xl border flex flex-col justify-between gap-3.5 transition-all ${
-                    prePublishInspection.checks[1].status === 'pass'
-                      ? 'bg-slate-50/70 border-slate-200'
-                      : 'bg-amber-50/50 border-amber-200'
-                  }`}>
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Monitor className="w-4 h-4 text-[#1e376b]" />
-                          <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[1].name}</h3>
-                        </div>
-                        {prePublishInspection.checks[1].status === 'pass' ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Check className="w-2.5 h-2.5" /> 已就绪 ({endpoints.length}个端已绑定)
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <AlertCircle className="w-2.5 h-2.5" /> 存在待绑定端
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-xs text-slate-600 flex flex-col gap-1.5 bg-white p-3 rounded-lg border border-slate-100 max-h-36 overflow-y-auto">
-                        {endpoints.map((ep) => {
-                          const dom = domains.find((d) => d.id === ep.domainId);
-                          const isBound = Boolean(dom && dom.host && dom.host.trim());
-                          return (
-                            <div key={ep.id} className="flex items-center justify-between gap-2 border-b border-slate-100/60 pb-1 last:border-0 last:pb-0">
-                              <span className="font-bold text-slate-800 flex items-center gap-1 truncate">
-                                <span>{ep.name}</span>
-                              </span>
-                              {isBound ? (
-                                <span className="font-mono text-[11px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded shrink-0 flex items-center gap-1">
-                                  <Check className="w-2.5 h-2.5" /> {dom?.host}
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded shrink-0">
-                                  ⚠️ 未绑定域名
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setPane('endpoints')}
-                      className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
-                    >
-                      <span>{prePublishInspection.checks[1].actionLabel}</span>
-                      <ArrowRight className="w-3 h-3 text-slate-400" />
-                    </button>
-                  </div>
-
-                  {/* Card 3: 组件库接入 */}
-                  <div className={`p-4.5 rounded-xl border flex flex-col justify-between gap-3.5 transition-all ${
-                    prePublishInspection.checks[2].status === 'pass'
-                      ? 'bg-slate-50/70 border-slate-200'
-                      : 'bg-amber-50/50 border-amber-200'
-                  }`}>
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Library className="w-4 h-4 text-[#1e376b]" />
-                          <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[2].name}</h3>
-                        </div>
-                        {prePublishInspection.checks[2].status === 'pass' ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Check className="w-2.5 h-2.5" /> 已接入 {deployedCount} 个组件
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <AlertCircle className="w-2.5 h-2.5" /> 建议接入组件
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-xs text-slate-600 flex flex-col gap-1.5 bg-white p-3 rounded-lg border border-slate-100">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 text-[11px]">组件库总数:</span>
-                          <span className="font-bold text-slate-800">{totalCompCount} 个能力组件</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 text-[11px]">已绑定接入:</span>
-                          <span className="font-bold text-emerald-700">{boundCompCount} 个 (平台标准 {platformCompCount} / 私有 {privateCompCount})</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 text-[11px]">未接入备用:</span>
-                          <span className="font-medium text-slate-500">{unboundCompCount} 个可按需接入</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setPane('components')}
-                      className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
-                    >
-                      <span>{prePublishInspection.checks[2].actionLabel}</span>
-                      <ArrowRight className="w-3 h-3 text-slate-400" />
-                    </button>
-                  </div>
-
-                  {/* Card 4: 菜单配置 */}
-                  <div className={`p-4.5 rounded-xl border flex flex-col justify-between gap-3.5 transition-all ${
-                    prePublishInspection.checks[3].status === 'pass'
-                      ? 'bg-slate-50/70 border-slate-200'
-                      : 'bg-amber-50/50 border-amber-200'
-                  }`}>
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <LayoutList className="w-4 h-4 text-[#1e376b]" />
-                          <h3 className="text-xs font-black text-slate-900">{prePublishInspection.checks[3].name}</h3>
-                        </div>
-                        {prePublishInspection.checks[3].status === 'pass' ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Check className="w-2.5 h-2.5" /> 菜单已就绪 ({prePublishInspection.totalMenusAcrossEps}项)
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <AlertCircle className="w-2.5 h-2.5" /> 存在未配置端
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-xs text-slate-600 flex flex-col gap-1.5 bg-white p-3 rounded-lg border border-slate-100 max-h-36 overflow-y-auto">
-                        {endpoints.map((ep) => {
-                          const epMenus = ep.customMenus || sharedMenus || [];
-                          return (
-                            <div key={ep.id} className="flex items-center justify-between gap-2 border-b border-slate-100/60 pb-1 last:border-0 last:pb-0">
-                              <span className="font-bold text-slate-800 truncate">{ep.name}</span>
-                              <span className={`text-[11px] font-mono px-1.5 py-0.2 rounded font-medium ${
-                                epMenus.length > 0 ? 'text-blue-700 bg-blue-50' : 'text-amber-700 bg-amber-50'
-                              }`}>
-                                {epMenus.length > 0 ? `${epMenus.length} 项菜单` : '⚠️ 未配置菜单'}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setPane('menus')}
-                      className="w-full py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1"
-                    >
-                      <span>{prePublishInspection.checks[3].actionLabel}</span>
-                      <ArrowRight className="w-3 h-3 text-slate-400" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Warning Issues Checklist Prompt Bar */}
-              {prePublishInspection.allWarnings.length > 0 && (
-                <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
-                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>发布前待确认/建议完善检查项 ({prePublishInspection.allWarnings.length} 项):</span>
-                  </div>
-                  <ul className="text-xs text-amber-900/90 pl-6 list-disc space-y-1">
-                    {prePublishInspection.allWarnings.map((item, idx) => (
-                      <li key={idx}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={handleFormalPublishClick}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs cursor-pointer flex items-center gap-2 shadow-xs transition-colors"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>正式发布实例 (上线运行)</span>
-                </button>
-              </div>
-
-              {/* Publish Audit Log Box */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-2.5 text-xs text-slate-600">
-                <div className="flex items-center justify-between font-bold text-slate-800">
-                  <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-[#1e376b]" />
-                    <span>发布版本与启禁状态联动档案</span>
-                  </span>
-                  <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-normal">
-                    已与产品管理启禁开关自动联动
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-500 pt-1">
-                  <div>
-                    <span className="text-slate-400">已生效版本: </span>
-                    <strong className="font-mono text-slate-700">{instance.publishedVersion || product.version || 'V1.0-Release'}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-400">最近发布时间: </span>
-                    <span className="text-slate-700 font-medium">{instance.lastPublishedAt || '尚未正式发布'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400">发布状态: </span>
-                    <strong className={instance.publishStatus === 'published' ? 'text-emerald-700' : 'text-amber-700'}>
-                      {instance.publishStatus === 'published' ? '已正式发布' : '草稿未发布'}
-                    </strong>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500">
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#1e376b]" />
+              <p className="text-xs font-bold text-slate-700">正在进入应用发布管理...</p>
             </div>
           )}
         </div>
@@ -3050,37 +3087,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                 className="w-full py-2 bg-[#1e376b] hover:bg-[#14264c] text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
               >
                 完成并关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Unpublish to Draft Confirm Modal */}
-      {showDraftConfirmModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-5 border border-slate-200 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-amber-600 mb-2">
-              <AlertCircle className="w-5 h-5" />
-              <h3 className="font-bold text-sm text-slate-900">确认取消发布并设为草稿？</h3>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              取消发布后，该实例将重置为「草稿」状态，关联的产品也将自动切换为【禁用】状态，对外服务将暂停。
-            </p>
-            <div className="mt-5 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowDraftConfirmModal(false)}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 cursor-pointer"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={handleUnpublishToDraft}
-                className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold cursor-pointer"
-              >
-                确认设为草稿
               </button>
             </div>
           </div>
