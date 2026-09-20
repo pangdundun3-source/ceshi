@@ -1,0 +1,8 @@
+{
+  "name": "Remix V8应用集成管理中心",
+  "description": "V8应用集成管理中心",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
