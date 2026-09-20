@@ -15,7 +15,7 @@ import {
 import {
   CustomerOrgManage
 } from './CustomerOrgManage';
-import { CustomerOrgItem, INITIAL_CUSTOMER_ORGS } from '../data/mockCustomerOrgs';
+import { CustomerOrgItem, INITIAL_CUSTOMER_ORGS, withOrgProductBindings } from '../data/mockCustomerOrgs';
 import { IntegratedApp } from '../types';
 import { INITIAL_APPS } from './AppManagement';
 
@@ -63,7 +63,7 @@ export const UnifiedAppCustomerOrgsView: React.FC<UnifiedAppCustomerOrgsViewProp
   };
 
   const [localCustomerOrgs, setLocalCustomerOrgs] = useState<CustomerOrgItem[]>(() => {
-    return (sharedCustomerOrgs || INITIAL_CUSTOMER_ORGS).map(c => ({
+    return withOrgProductBindings(sharedCustomerOrgs || INITIAL_CUSTOMER_ORGS).map(c => ({
       ...c,
       isEnabled: c.isEnabled !== undefined ? c.isEnabled : c.status !== 'disabled'
     }));
@@ -134,12 +134,12 @@ export const UnifiedAppCustomerOrgsView: React.FC<UnifiedAppCustomerOrgsViewProp
                     <span className="text-xs text-slate-500 font-normal">· {pageSubtitle}</span>
                   )}
                   {pageSubtitlePosition === 'inline' && !pageSubtitle && (
-                    <span className="text-xs text-slate-500 font-normal">· 已开通客户统计与清单</span>
+                    <span className="text-xs text-slate-500 font-normal">· 按产品查看已开通机构</span>
                   )}
                 </div>
                 {pageSubtitlePosition === 'below' && (
                   <span className="text-xs text-slate-500 font-normal mt-0.5">
-                    {pageSubtitle || '已开通客户统计与清单'}
+                    {pageSubtitle || '按产品查看已开通机构'}
                   </span>
                 )}
               </div>

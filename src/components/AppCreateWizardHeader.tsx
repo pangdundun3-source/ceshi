@@ -7,9 +7,12 @@ interface AppCreateWizardHeaderProps {
   currentStep: AppCreateWizardStep;
   onBackToList: () => void;
   onGoStep?: (step: AppCreateWizardStep) => void;
+  backLabel?: string;
+  badge?: string;
+  steps?: Array<{ step: AppCreateWizardStep; label: string }>;
 }
 
-const STEPS: Array<{ step: AppCreateWizardStep; label: string }> = [
+const DEFAULT_STEPS: Array<{ step: AppCreateWizardStep; label: string }> = [
   { step: 1, label: '填写基本信息' },
   { step: 2, label: '配调用模块搭页面' },
   { step: 3, label: '选接入端配模块' },
@@ -20,6 +23,9 @@ export const AppCreateWizardHeader: React.FC<AppCreateWizardHeaderProps> = ({
   currentStep,
   onBackToList,
   onGoStep,
+  backLabel = '返回应用列表',
+  badge = '新增应用接入',
+  steps = DEFAULT_STEPS,
 }) => {
   return (
     <div className="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -31,16 +37,16 @@ export const AppCreateWizardHeader: React.FC<AppCreateWizardHeaderProps> = ({
           id="btn_wizard_back_to_app_list"
         >
           <ArrowLeft className="w-4 h-4 text-blue-600 group-hover:-translate-x-0.5 transition-transform" />
-          <span>返回应用列表</span>
+          <span>{backLabel}</span>
         </button>
         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
         <span className="text-slate-900 font-black text-sm bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200/60">
-          新增应用接入
+          {badge}
         </span>
       </div>
 
       <div className="flex items-center gap-2 text-xs flex-wrap">
-        {STEPS.map((item, index) => {
+        {steps.map((item, index) => {
           const done = currentStep > item.step;
           const active = currentStep === item.step;
           const clickable = Boolean(onGoStep && item.step < currentStep);

@@ -68,6 +68,27 @@ export const UNIFIED_CALL_MODULES: UnifiedCallModule[] = [
     id: 'submenu_unified_role_permission',
   },
   {
+    menu: MenuItem.UnifiedDataDictionary,
+    title: '数据字典',
+    kernel: '组织核',
+    description: '维护各应用统一调用的字典项与枚举值',
+    id: 'submenu_unified_data_dictionary',
+  },
+  {
+    menu: MenuItem.UnifiedMessageNotice,
+    title: '消息公告',
+    kernel: '组织核',
+    description: '面向接入机构发布通知、公告与站内消息',
+    id: 'submenu_unified_message_notice',
+  },
+  {
+    menu: MenuItem.UnifiedSystemLog,
+    title: '系统日志',
+    kernel: '组织核',
+    description: '查看统一调用组件的操作记录与审计日志',
+    id: 'submenu_unified_system_log',
+  },
+  {
     menu: MenuItem.UnifiedInviteOpen,
     title: '邀请开通',
     kernel: '开通核',

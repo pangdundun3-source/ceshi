@@ -9,7 +9,7 @@ import { Sidebar } from './components/Sidebar';
 import { EntityLogs } from './components/EntityLogs';
 import { CustomerDirectory } from './components/CustomerDirectory';
 import { AppDashboard } from './components/AppDashboard';
-import { AppManagement } from './components/AppManagement';
+import { AppPlatform } from './components/AppPlatform';
 import { AppDataDictionary } from './components/AppDataDictionary';
 import { AppInnerCustomerList } from './components/AppInnerCustomerList';
 import { ExternalUserAppConfig } from './components/ExternalUserAppConfig';
@@ -39,7 +39,7 @@ import { MTOpenUserListView } from './components/MTOpenUserListView';
 import { INITIAL_DITING_MENUS, SysMenuItem } from './components/MenuManage';
 import { INITIAL_PRIMARY_PERMS, PrimaryPermItem } from './components/PermissionDictManage';
 import { INITIAL_APP_DEFAULT_ROLES, DefaultRoleItem } from './components/DefaultRoleManage';
-import { INITIAL_CUSTOMER_ORGS, CustomerOrgItem } from './data/mockCustomerOrgs';
+import { INITIAL_CUSTOMER_ORGS, CustomerOrgItem, withOrgProductBindings } from './data/mockCustomerOrgs';
 import { INITIAL_APP_ACCOUNTS, AppAccountUserRecord } from './data/mockAppAccounts';
 import { MenuItem, SystemMode, OperationLog } from './types';
 import { INITIAL_OPERATION_LOGS } from './data';
@@ -221,11 +221,18 @@ export default function App() {
 
   // 全局客户机构共享状态：保证「应用客户机构」与应用配置中的「客户机构」数据双向联动
   const [sharedCustomerOrgs, setSharedCustomerOrgs] = useState<CustomerOrgItem[]>(() => {
-    return INITIAL_CUSTOMER_ORGS.map(c => ({
+    return withOrgProductBindings(INITIAL_CUSTOMER_ORGS).map(c => ({
       ...c,
       isEnabled: c.isEnabled !== undefined ? c.isEnabled : c.status !== 'disabled'
     }));
   });
+
+  useEffect(() => {
+    setSharedCustomerOrgs((prev) => {
+      const next = withOrgProductBindings(prev);
+      return next.some((org, index) => org.productId !== prev[index]?.productId) ? next : prev;
+    });
+  }, []);
 
   // 全局应用账号共享状态：保证「各应用统一调用组件 > 应用账号管理」与「模拟指令流转MT > 开通用户账号列表」数据双向联动
   const [sharedAppAccounts, setSharedAppAccounts] = useState<AppAccountUserRecord[]>(() => INITIAL_APP_ACCOUNTS);
@@ -404,22 +411,24 @@ export default function App() {
       case MenuItem.BusinessDashboard:
         return <AppDashboard />;
 
-      // 2. 应用管理 (二级菜单：应用列表)
+      // 2. 应用管理：产品 / 机构
       case MenuItem.AppList:
+      case MenuItem.ProductManage:
         return (
-          <AppManagement
-            onNavigateToExtUserConfig={(appCode) => {
-              setTargetExtUserAppCode(appCode);
-              setCurrentMenu(MenuItem.ExtUserAppConfig);
-            }}
+          <AppPlatform
             sharedMenus={sharedMenus}
             onSharedMenusChange={setSharedMenus}
-            sharedPrimaryPerms={sharedPrimaryPerms}
-            onSharedPrimaryPermsChange={setSharedPrimaryPerms}
-            sharedDefaultRoles={sharedDefaultRoles}
-            onSharedDefaultRolesChange={setSharedDefaultRoles}
+          />
+        );
+
+      case MenuItem.OrgManage:
+        return (
+          <UnifiedAppCustomerOrgsView
             sharedCustomerOrgs={sharedCustomerOrgs}
             onSharedCustomerOrgsChange={setSharedCustomerOrgs}
+            breadcrumbs={['V8应用集成管理中心', '应用管理', '机构管理']}
+            pageTitle="机构管理"
+            pageSubtitle="按产品查看已开通机构"
           />
         );
 

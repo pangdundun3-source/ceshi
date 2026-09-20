@@ -9,8 +9,10 @@ export enum MenuItem {
   AppDashboard = 'app_dashboard',
   BusinessDashboard = 'app_dashboard',
 
-  // 2. 应用管理 -> 二级菜单：应用列表
-  AppList = 'app_list',
+  // 2. 应用管理 -> 二级菜单
+  AppList = 'product_manage',
+  ProductManage = 'product_manage',
+  OrgManage = 'org_manage',
 
   // 2.5 V8用户体系管理 -> 二级菜单：V8用户数据库、微信用户数据库
   V8UserDatabase = 'v8_user_database',
@@ -67,6 +69,9 @@ export enum MenuItem {
   UnifiedPersonnelManage = 'unified_personnel_manage',
   UnifiedGroupManage = 'unified_group_manage',
   UnifiedRolePermission = 'unified_role_permission',
+  UnifiedDataDictionary = 'unified_data_dictionary',
+  UnifiedMessageNotice = 'unified_message_notice',
+  UnifiedSystemLog = 'unified_system_log',
   UnifiedInviteOpen = 'unified_invite_open',
   // 迁移至各应用内界面的二级菜单：客户组织架构、客户账号管理、客户角色管理、客户权限管理
   AppOrg = 'app_org',

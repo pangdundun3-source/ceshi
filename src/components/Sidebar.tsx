@@ -67,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => toggleSection('appManage')}
             className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors ${
-              currentMenu === MenuItem.AppList
+              [MenuItem.ProductManage, MenuItem.OrgManage].includes(currentMenu)
                 ? 'text-[#1e376b] bg-blue-200/30'
                 : 'text-[#1e376b] hover:bg-blue-200/50'
             }`}
@@ -82,17 +82,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
           
           {openSections.appManage && (
             <div className="mt-1 pl-4 flex flex-col gap-0.5 border-l border-[#1e376b]/20 ml-4 animate-in fade-in duration-200">
-              <button
-                onClick={() => setCurrentMenu(MenuItem.AppList)}
-                className={`w-full text-left px-3 py-2 text-xs rounded-md transition-all cursor-pointer ${
-                  currentMenu === MenuItem.AppList
-                    ? 'bg-[#1e376b] text-white font-semibold shadow-sm'
-                    : 'text-[#1e376b] hover:bg-blue-200/50'
-                }`}
-                id="submenu_app_list"
-              >
-                应用列表
-              </button>
+              {[
+                { id: MenuItem.ProductManage, label: '产品管理', el: 'submenu_product_manage' },
+                { id: MenuItem.OrgManage, label: '机构管理', el: 'submenu_org_manage' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentMenu(item.id)}
+                  className={`w-full text-left px-3 py-2 text-xs rounded-md transition-all cursor-pointer ${
+                    currentMenu === item.id
+                      ? 'bg-[#1e376b] text-white font-semibold shadow-sm'
+                      : 'text-[#1e376b] hover:bg-blue-200/50'
+                  }`}
+                  id={item.el}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           )}
         </div>

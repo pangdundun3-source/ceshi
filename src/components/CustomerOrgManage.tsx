@@ -25,15 +25,21 @@ import {
   Calendar,
   FileText,
   AlertCircle,
-  AlertTriangle
+  AlertTriangle,
+  Boxes
 } from 'lucide-react';
 import {
   CustomerOrgItem,
   INITIAL_CUSTOMER_ORGS,
   STATISTICAL_UNITS,
-  MASTER_ENTERPRISE_CUSTOMERS
+  MASTER_ENTERPRISE_CUSTOMERS,
+  withOrgProductBindings
 } from '../data/mockCustomerOrgs';
+import { INITIAL_PRODUCTS } from '../data/appPlatform';
 import { CustomerAppConfig } from './CustomerAppConfig';
+
+const getProduct = (productId?: string) =>
+  INITIAL_PRODUCTS.find((item) => item.id === productId);
 
 export interface CustomerOrgManageProps {
   appName?: string;
@@ -56,7 +62,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
 }) => {
   // 内部或受控客户机构数据
   const [internalOrgs, setInternalOrgs] = useState<CustomerOrgItem[]>(() => {
-    return INITIAL_CUSTOMER_ORGS.map(c => ({
+    return withOrgProductBindings(INITIAL_CUSTOMER_ORGS).map(c => ({
       ...c,
       isEnabled: c.isEnabled !== undefined ? c.isEnabled : c.status !== 'disabled'
     }));
@@ -82,6 +88,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
   const [salesPersonFilter, setSalesPersonFilter] = useState<string>('');
   const [custVersionFilter, setCustVersionFilter] = useState<string>('全部授权');
   const [custStatusFilter, setCustStatusFilter] = useState<'全部' | 'active' | 'expired' | 'disabled' | 'trash'>('全部');
+  const [productFilter, setProductFilter] = useState<string>('全部产品');
   // 服务到期日期排序状态: null | 'asc' (近到远) | 'desc' (远到近)
   const [expireSortOrder, setExpireSortOrder] = useState<'asc' | 'desc' | null>(null);
 
@@ -102,6 +109,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
   const [openVersion, setOpenVersion] = useState<'正式版' | '试用版'>('正式版');
   const [openExpireDate, setOpenExpireDate] = useState('2027-12-31');
   const [openRemark, setOpenRemark] = useState('');
+  const [openProductId, setOpenProductId] = useState(INITIAL_PRODUCTS[0]?.id || '');
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -124,6 +132,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
     setOpenVersion('正式版');
     setOpenExpireDate('2027-12-31');
     setOpenRemark('');
+    setOpenProductId(INITIAL_PRODUCTS[0]?.id || '');
     setIsAddCustModalOpen(true);
   };
 
@@ -160,6 +169,10 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
   const filteredCustomerOrgs = customerOrgs.filter(c => {
     // 1. 统计单元
     if (statUnitFilter !== '全部统计单元' && c.statUnit !== statUnitFilter) {
+      return false;
+    }
+
+    if (productFilter !== '全部产品' && c.productId !== productFilter) {
       return false;
     }
 
@@ -250,23 +263,17 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
     });
   }, [modalSearchKeyword]);
 
-  // 检查某机构是否已经在当前应用中开通
-  const checkIsAlreadyOpened = (org: typeof MASTER_ENTERPRISE_CUSTOMERS[0]) => {
+  // 检查某机构是否已经开通指定产品（同一机构可开通多个产品）
+  const checkIsAlreadyOpened = (org: typeof MASTER_ENTERPRISE_CUSTOMERS[0], productId = openProductId) => {
     return customerOrgs.find(
-      (c) => c.orgName === org.orgName || c.creditCode === org.creditCode || c.id === org.id
+      (c) =>
+        c.productId === productId &&
+        (c.orgName === org.orgName || c.creditCode === org.creditCode || c.id === org.id)
     );
   };
 
   // 处理在下拉框中选择机构
   const handleSelectMasterOrgFromDropdown = (org: typeof MASTER_ENTERPRISE_CUSTOMERS[0]) => {
-    const alreadyOpened = checkIsAlreadyOpened(org);
-    if (alreadyOpened) {
-      setIsAddCustModalOpen(false);
-      setSelectedCustForAppConfig(alreadyOpened);
-      showToast(`已自动定位并打开已授权机构「${alreadyOpened.orgShortName || alreadyOpened.orgName}」的管理详情页`, 'info');
-      return;
-    }
-
     setSelectedMasterOrg(org);
     setModalSearchKeyword(org.orgShortName || org.orgName);
     setIsDropdownOpen(false);
@@ -277,11 +284,17 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
     e.preventDefault();
     if (!selectedMasterOrg) return;
 
-    const existing = checkIsAlreadyOpened(selectedMasterOrg);
+    const existing = checkIsAlreadyOpened(selectedMasterOrg, openProductId);
     if (existing) {
       setIsAddCustModalOpen(false);
       setSelectedCustForAppConfig(existing);
-      showToast(`机构「${existing.orgShortName || existing.orgName}」此前已开通，已直接为您跳转至管理页`, 'info');
+      showToast(`机构「${existing.orgShortName || existing.orgName}」此前已开通该产品，已直接为您跳转至管理页`, 'info');
+      return;
+    }
+
+    const product = getProduct(openProductId);
+    if (!product) {
+      showToast('请选择要开通的产品', 'warning');
       return;
     }
 
@@ -306,7 +319,8 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
       contactPhone: selectedMasterOrg.contactPhone,
       remark: openRemark.trim() || undefined,
       accountUsed: 0,
-      accountLimit: openVersion === '正式版' ? 100 : 20
+      accountLimit: openVersion === '正式版' ? 100 : 20,
+      productId: product.id
     };
 
     updateCustomerOrgs(prev => [newOrg, ...prev]);
@@ -314,7 +328,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
     setCustStatusFilter('全部');
     setCurrentCustPage(1);
     setCustJumpPage('1');
-    showToast(`成功为「${newOrg.orgShortName || newOrg.orgName}」授权开通「${appName || appShortName}」应用！`, 'success');
+    showToast(`成功为「${newOrg.orgShortName || newOrg.orgName}」开通产品「${product.name}」！`, 'success');
   };
 
   // 确认删除客户机构
@@ -329,12 +343,13 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
 
   // 如果处于单独机构的客户应用配置页面
   if (selectedCustForAppConfig) {
+    const boundProduct = getProduct(selectedCustForAppConfig.productId);
     return (
       <CustomerAppConfig
         customer={selectedCustForAppConfig}
-        appName={appName}
-        appCode={appCode}
-        appShortName={appShortName}
+        appName={boundProduct?.name || appName}
+        appCode={boundProduct?.code || appCode}
+        appShortName={boundProduct?.name || appShortName}
         roleType={roleType}
         onBack={() => setSelectedCustForAppConfig(null)}
         onUpdateCustomer={(updated) => {
@@ -532,6 +547,26 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
               </select>
             </div>
 
+            <div className="flex flex-col gap-1.5 shrink-0">
+              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">开通产品</label>
+              <select
+                value={productFilter}
+                onChange={(e) => {
+                  setProductFilter(e.target.value);
+                  setCurrentCustPage(1);
+                  setCustJumpPage('1');
+                }}
+                className="px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#1e376b] text-slate-800 font-medium cursor-pointer shadow-2xs h-8.5"
+              >
+                <option value="全部产品">全部产品</option>
+                {INITIAL_PRODUCTS.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} ({product.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* 2. 客户简称、全称、统一社会信用代码 (单行文本框, 最长50汉字, 宽度设定, 占位提示) */}
             <div className="flex flex-col gap-1.5 shrink-0">
               <label className="text-xs font-bold text-slate-700 whitespace-nowrap">客户简称、全称、统一社会信用代码</label>
@@ -655,6 +690,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                   setCustSearchQuery('');
                   setSalesPersonFilter('');
                   setStatUnitFilter('全部统计单元');
+                  setProductFilter('全部产品');
                   setCustVersionFilter('全部授权');
                   setCustStatusFilter('全部');
                   setExpireSortOrder(null);
@@ -689,6 +725,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
             <thead>
               <tr className="bg-slate-50/90 border-b border-slate-200 text-slate-700 font-bold">
                 <th className="py-3 px-4 min-w-[260px]">客户简称 (悬浮查看详情) / 统计单元</th>
+                <th className="py-3 px-3 min-w-[120px]">开通产品</th>
                 <th className="py-3 px-3 min-w-[120px]">所属销售</th>
                 <th className="py-3 px-3 min-w-[90px]">开通版本</th>
                 <th className="py-3 px-3 min-w-[110px]">授权状态</th>
@@ -775,6 +812,12 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                                 <span className="text-slate-400 shrink-0">客户级别:</span>
                                 <span className="font-bold text-emerald-300 bg-emerald-950/50 px-1.5 py-0.2 rounded border border-emerald-800/40 text-[10px]">{cust.customerLevel || '地市级'}</span>
                               </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-slate-400 shrink-0">开通产品:</span>
+                                <span className="font-bold text-sky-300 bg-sky-950/50 px-1.5 py-0.2 rounded border border-sky-800/40 text-[10px]">
+                                  {getProduct(cust.productId)?.name || '未关联产品'}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -785,6 +828,23 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                         <span className="text-slate-400">统计单元:</span>
                         <span className="text-slate-600">{cust.statUnit}</span>
                       </div>
+                    </td>
+
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      {(() => {
+                        const product = getProduct(cust.productId);
+                        return product ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1 font-black text-slate-900">
+                              <Boxes className="w-3.5 h-3.5 text-[#1e376b]" />
+                              {product.name}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">{product.code}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">未关联产品</span>
+                        );
+                      })()}
                     </td>
 
                     {/* 2. 所属销售 */}
@@ -862,7 +922,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                           type="button"
                           onClick={() => setSelectedCustForAppConfig(cust)}
                           className="px-3 py-1.5 text-xs text-blue-700 hover:text-white bg-blue-50 hover:bg-blue-600 border border-blue-200 hover:border-blue-600 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                          title={`进入客户「${cust.orgShortName || cust.orgName}」的应用配置页`}
+                          title={`进入客户「${cust.orgShortName || cust.orgName}」的「${getProduct(cust.productId)?.name || '产品'}」配置页`}
                         >
                           <Sliders className="w-3.5 h-3.5" />
                           <span>管理</span>
@@ -873,10 +933,10 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                     <p className="font-bold text-sm text-slate-600">未找到符合条件的客户机构</p>
-                    <p className="text-xs text-slate-400 mt-1">请尝试调整统计单元或搜索关键字</p>
+                    <p className="text-xs text-slate-400 mt-1">请尝试调整开通产品、统计单元或搜索关键字</p>
                   </td>
                 </tr>
               )}
@@ -1018,7 +1078,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                 <div>
                   <h3 className="text-sm font-black text-slate-900">授权开通新机构</h3>
                   <p className="text-[11px] text-slate-500">
-                    为未授权的客户机构开通「{appName || appShortName}」应用访问权限
+                    选择客户机构并指定开通产品，同一机构可分别开通多个产品
                   </p>
                 </div>
               </div>
@@ -1032,6 +1092,22 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
             </div>
 
             <form onSubmit={handleConfirmAuthorize} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700">开通产品 *</label>
+                <select
+                  required
+                  value={openProductId}
+                  onChange={(e) => setOpenProductId(e.target.value)}
+                  className="w-full px-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-bold text-slate-800"
+                >
+                  {INITIAL_PRODUCTS.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} · {product.code} · {product.version}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* 1. 机构选择与即时搜索框 */}
               <div className="flex flex-col gap-1.5" ref={dropdownRef}>
                 <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
@@ -1079,10 +1155,10 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                               key={org.id}
                               onClick={() => handleSelectMasterOrgFromDropdown(org)}
                               className={`p-2.5 rounded-lg text-xs cursor-pointer flex items-center justify-between transition-colors ${
-                                alreadyOpened
-                                  ? 'bg-rose-50/70 hover:bg-rose-100/80 border border-rose-200/70 text-rose-900'
-                                  : selectedMasterOrg?.id === org.id
+                                selectedMasterOrg?.id === org.id
                                   ? 'bg-blue-50 text-[#1e376b] font-bold border border-blue-200'
+                                  : alreadyOpened
+                                  ? 'bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/70 text-amber-900'
                                   : 'hover:bg-slate-50 text-slate-700 border border-transparent'
                               }`}
                             >
@@ -1097,13 +1173,12 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
 
                               <div className="shrink-0 flex items-center gap-1">
                                 {alreadyOpened ? (
-                                  <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-bold rounded-md flex items-center gap-1 shadow-xs animate-pulse">
-                                    <AlertCircle className="w-3 h-3" />
-                                    <span>已开通 (点击直达管理) →</span>
+                                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold rounded-md">
+                                    该产品已开通
                                   </span>
                                 ) : (
                                   <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold rounded-md">
-                                    未开通
+                                    未开通此产品
                                   </span>
                                 )}
                               </div>
@@ -1186,6 +1261,12 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                     <Sliders className="w-3.5 h-3.5 text-blue-600" />
                     <span>应用授权配置参数</span>
                   </h4>
+
+                  {checkIsAlreadyOpened(selectedMasterOrg, openProductId) && (
+                    <p className="text-[11px] text-amber-700 font-bold bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      该机构已开通「{getProduct(openProductId)?.name}」，确认后将进入已有授权管理页。
+                    </p>
+                  )}
 
                   {/* 开通的版本 */}
                   <div className="flex flex-col gap-1.5">

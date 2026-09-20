@@ -45,8 +45,6 @@ import {
   HelpCircle,
   X
 } from 'lucide-react';
-import { INITIAL_PRIMARY_PERMS, PrimaryPermItem } from './PermissionDictManage';
-
 // ==========================================
 // 1. 数据结构类型定义
 // ==========================================
@@ -686,7 +684,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
   const [isAddMenuModalOpen, setIsAddMenuModalOpen] = useState(false);
   const [addMenuLevel, setAddMenuLevel] = useState<'primary' | 'secondary'>('primary');
   const [addMenuName, setAddMenuName] = useState('');
-  const [addMenuCode, setAddMenuCode] = useState('');
   const [addMenuParentId, setAddMenuParentId] = useState<string>('m_dt_1');
   const [addMenuError, setAddMenuError] = useState<string>('');
 
@@ -803,9 +800,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
     setAddMenuLevel('primary');
     setAddMenuName('');
     setAddMenuError('');
-    // 默认生成一个唯一的推荐编码
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    setAddMenuCode(`MENU_NEW_${randomSuffix}`);
     // 默认父级菜单为第一个一级菜单
     const firstPrimary = menus.find(m => m.parentId === '0');
     if (firstPrimary) {
@@ -827,13 +821,9 @@ export const MenuManage: React.FC<MenuManageProps> = ({
       return;
     }
 
-    const trimmedCode = (addMenuCode.trim() || `MENU_${Date.now().toString().slice(-4)}`).toUpperCase();
-
-    // 校验编码在整个应用内是否重复
-    const isCodeDuplicate = menus.some(m => m.menuCode.toUpperCase() === trimmedCode);
-    if (isCodeDuplicate) {
-      setAddMenuError(`菜单编码「${trimmedCode}」在应用内已存在，请更换`);
-      return;
+    let trimmedCode = `MENU_${Date.now().toString().slice(-6)}`;
+    while (menus.some(m => m.menuCode.toUpperCase() === trimmedCode)) {
+      trimmedCode = `MENU_${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
     }
 
     const newId = 'menu_' + Date.now();
@@ -1143,50 +1133,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
       );
     }
     return sortMenuItems(list);
-  };
-
-  // 权限绑定多选切换（支持勾选主权限与子权限）
-  const handleTogglePermCode = (permCode: string) => {
-    if (!editForm) return;
-    const current = editForm.boundPermCodes || [];
-    const next = current.includes(permCode)
-      ? current.filter(c => c !== permCode)
-      : [...current, permCode];
-
-    setEditForm({ ...editForm, boundPermCodes: next });
-    setIsFormDirty(true);
-  };
-
-  // 勾选某个主权限下的所有子权限
-  const handleTogglePrimaryGroup = (primaryPerm: PrimaryPermItem) => {
-    if (!editForm) return;
-    const current = editForm.boundPermCodes || [];
-    const groupCodes = [primaryPerm.permCode, ...primaryPerm.subPermissions.map(s => s.subPermCode)];
-    const isAllSelected = groupCodes.every(c => current.includes(c));
-
-    let next: string[];
-    if (isAllSelected) {
-      next = current.filter(c => !groupCodes.includes(c));
-    } else {
-      next = Array.from(new Set([...current, ...groupCodes]));
-    }
-
-    setEditForm({ ...editForm, boundPermCodes: next });
-    setIsFormDirty(true);
-  };
-
-  // 全选/清空所有权限
-  const handleSelectAllPerms = () => {
-    if (!editForm) return;
-    const allCodes: string[] = [];
-    INITIAL_PRIMARY_PERMS.forEach(p => {
-      allCodes.push(p.permCode);
-      p.subPermissions.forEach(s => allCodes.push(s.subPermCode));
-    });
-
-    const isAll = (editForm.boundPermCodes || []).length >= allCodes.length;
-    setEditForm({ ...editForm, boundPermCodes: isAll ? [] : allCodes });
-    setIsFormDirty(true);
   };
 
   // 现有的一级菜单列表（用于二级菜单选择父级）
@@ -1632,46 +1578,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                   />
                 </div>
 
-                {/* 2. 菜单唯一编码 */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>
-                      菜单唯一编码 <span className="text-rose-500">*</span>
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-normal">应用内不可重复</span>
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type="text"
-                      required
-                      value={editForm.menuCode}
-                      onChange={e => {
-                        setEditForm({ ...editForm, menuCode: e.target.value.toUpperCase() });
-                        setIsFormDirty(true);
-                      }}
-                      placeholder="例如：DT_WARN_REALTIME"
-                      className="w-full pl-3 pr-20 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-mono font-bold text-blue-900"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(editForm.menuCode, 'code')}
-                      className="absolute right-2 px-2 py-1 text-[11px] font-bold text-slate-600 hover:text-blue-600 bg-white border border-slate-200 rounded flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      {copiedKey === 'code' ? (
-                        <>
-                          <Check className="w-3 h-3 text-emerald-600" />
-                          <span className="text-emerald-600">已复制</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" />
-                          <span>复制</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
                 {/* 3. 父级菜单 */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
@@ -1993,25 +1899,7 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                   </div>
                 </div>
 
-                {/* 7. 排序序号（调整到前台显示状态上面） */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>排序序号</span>
-                    <span className="text-[11px] text-slate-400 font-normal">数字越小越靠前</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={editForm.sort}
-                    onChange={e => {
-                      setEditForm({ ...editForm, sort: parseInt(e.target.value) || 1 });
-                      setIsFormDirty(true);
-                    }}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-mono font-bold"
-                  />
-                </div>
-
-                {/* 8. 前台显示状态（调整到排序序号下面） */}
+                {/* 7. 前台显示状态 */}
                 <div className="flex items-center justify-between p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-bold text-slate-800">前台显示状态</span>
@@ -2054,119 +1942,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                       <span>不可见</span>
                     </button>
                   </div>
-                </div>
-
-                {/* 9. 显示范围：全局可见 / 权限绑定二选一 */}
-                <div className="flex flex-col gap-2.5 p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-bold text-slate-800">显示范围</span>
-                      <span className="text-[11px] text-slate-500">
-                        {editForm.globalVisible
-                          ? '当前为全局可见（所有用户均可直接访问此菜单）'
-                          : '当前为权限控制（仅拥有勾选权限的用户才可见）'}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditForm({ ...editForm, globalVisible: !editForm.globalVisible });
-                        setIsFormDirty(true);
-                      }}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
-                        editForm.globalVisible
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Globe className="w-3.5 h-3.5" />
-                      <span>{editForm.globalVisible ? '全局可见' : '开启全局可见'}</span>
-                    </button>
-                  </div>
-
-                  {/* 若关闭全局可见，则展示应用权限绑定多选面板 */}
-                  {!editForm.globalVisible && (
-                    <div className="flex flex-col gap-2.5 pt-3 border-t border-slate-200/80">
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                            <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                            <span>请选择绑定的应用权限（支持多选）：</span>
-                          </span>
-                          <span className="text-[11px] text-slate-500 font-normal pl-4.5">
-                            只有用户具备其中已选择的任意一个权限，才可见此菜单。
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleSelectAllPerms}
-                          className="text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer self-start mt-0.5"
-                        >
-                          全选/清空
-                        </button>
-                      </div>
-
-                      <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-1">
-                        {INITIAL_PRIMARY_PERMS.map(primary => {
-                          const isPrimarySelected = (editForm.boundPermCodes || []).includes(primary.permCode);
-                          return (
-                            <div
-                              key={primary.id}
-                              className="p-2.5 bg-white rounded-lg border border-slate-200 flex flex-col gap-2"
-                            >
-                              {/* 主权限行 */}
-                              <div className="flex items-center justify-between">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={isPrimarySelected}
-                                    onChange={() => handleTogglePermCode(primary.permCode)}
-                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
-                                  />
-                                  <span className="text-xs font-bold text-slate-800">{primary.permName}</span>
-                                  <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1 py-0.2 rounded">
-                                    {primary.permCode}
-                                  </span>
-                                </label>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleTogglePrimaryGroup(primary)}
-                                  className="text-[10px] text-blue-600 hover:text-blue-800 font-bold"
-                                >
-                                  全选此组
-                                </button>
-                              </div>
-
-                              {/* 子权限网格 */}
-                              {primary.subPermissions.length > 0 && (
-                                <div className="pl-5 grid grid-cols-1 sm:grid-cols-2 gap-1.5 border-t border-slate-100 pt-1.5">
-                                  {primary.subPermissions.map(sub => {
-                                    const isSubSelected = (editForm.boundPermCodes || []).includes(sub.subPermCode);
-                                    return (
-                                      <label
-                                        key={sub.id}
-                                        className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-600 hover:text-slate-900"
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={isSubSelected}
-                                          onChange={() => handleTogglePermCode(sub.subPermCode)}
-                                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
-                                        />
-                                        <span className="truncate">{sub.subPermName}</span>
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -2316,22 +2091,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                   }}
                   placeholder={addMenuLevel === 'primary' ? '例如：智能研判大厅' : '例如：高危线索追溯'}
                   className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-medium"
-                />
-              </div>
-
-              {/* 菜单唯一编码 (自动推荐可调整) */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span>菜单唯一编码</span>
-                  <span className="text-[11px] text-slate-400 font-normal">系统推荐生成</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={addMenuCode}
-                  onChange={e => setAddMenuCode(e.target.value.toUpperCase())}
-                  placeholder="例如：DT_SMART_HALL"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 font-mono font-bold text-blue-900"
                 />
               </div>
 

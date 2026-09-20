@@ -34,7 +34,6 @@ import {
   Users,
   Menu,
   History,
-  FileText,
   Share2,
   Search,
   Plus,
@@ -78,7 +77,6 @@ export const CustomerAppConfig: React.FC<CustomerAppConfigProps> = ({
     | 'user_management'
     | 'menu_settings'
     | 'trial_records'
-    | 'op_logs'
     | 'perm_dict'
     | 'role_management'
     | 'external_user_system'
@@ -125,7 +123,6 @@ export const CustomerAppConfig: React.FC<CustomerAppConfigProps> = ({
     { id: 'user_management', label: '用户管理', icon: Users, badge: '12人', badgeClass: 'bg-slate-100 text-slate-700' },
     { id: 'menu_settings', label: '菜单设置(不做)', icon: Menu },
     { id: '试用记录', idKey: 'trial_records', label: '试用记录(不做)', icon: History },
-    { id: '操作日志', idKey: 'op_logs', label: '操作日志(不做)', icon: FileText },
     { id: '权限字典', idKey: 'perm_dict', label: '权限字典', icon: KeyRound },
     { id: '角色管理', idKey: 'role_management', label: '角色管理', icon: ShieldCheck, badge: '4个', badgeClass: 'bg-slate-100 text-slate-700' },
     { id: '外部用户体系配置', idKey: 'external_user_system', label: '外部用户体系配置', icon: Share2, badge: '已对接', badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200' }
@@ -184,6 +181,9 @@ export const CustomerAppConfig: React.FC<CustomerAppConfigProps> = ({
                   )}
                 </button>
 
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold border bg-sky-50 text-sky-800 border-sky-200">
+                  开通产品 {appShortName || appName}
+                </span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                   customer.version === '正式版'
                     ? 'bg-purple-50 text-purple-700 border-purple-200'
@@ -314,7 +314,7 @@ export const CustomerAppConfig: React.FC<CustomerAppConfigProps> = ({
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    为「{customer.orgShortName || customer.orgName}」定制在应用【{appName || '当前应用'}】中的运行参数与策略配置
+                    为「{customer.orgShortName || customer.orgName}」定制在开通产品【{appName || '当前产品'}】中的运行参数与策略配置
                   </p>
                 </div>
                 <button
@@ -444,41 +444,6 @@ export const CustomerAppConfig: React.FC<CustomerAppConfigProps> = ({
                     </tr>
                   </tbody>
                 </table>
-              </div>
-            </div>
-          )}
-
-          {/* 6. 操作日志面板 */}
-          {activeTab === 'op_logs' && (
-            <div className="flex flex-col gap-4 animate-in fade-in duration-150">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-slate-700" />
-                    <span>机构专属操作审计日志</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    追踪该客户机构在应用内的管理员操作轨迹与安全审计事件
-                  </p>
-                </div>
-              </div>
-
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
-                {[
-                  { time: '2026-09-10 11:25:30', user: '张华(系统管理员)', action: '更新了应用综合服务有效期', ip: '192.168.1.102' },
-                  { time: '2026-09-08 16:40:12', user: '王立新(机构超管)', action: '为用户「李梅」分配了「业务主管」角色', ip: '117.34.22.18' },
-                  { time: '2026-09-05 09:12:05', user: '夏小花(负责销售)', action: '更新了客户机构统一信用代码与归属单元', ip: '117.34.22.99' },
-                  { time: '2026-09-01 10:00:00', user: '系统调度', action: '执行了月初机构授权配额自动核验', ip: '127.0.0.1' }
-                ].map((log, i) => (
-                  <div key={i} className="p-3 bg-white hover:bg-slate-50/80 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-slate-400 text-[11px]">{log.time}</span>
-                      <span className="font-bold text-slate-900">{log.user}</span>
-                      <span className="text-slate-700">{log.action}</span>
-                    </div>
-                    <span className="font-mono text-slate-400 text-[10px] bg-slate-100 px-2 py-0.5 rounded">{log.ip}</span>
-                  </div>
-                ))}
               </div>
             </div>
           )}

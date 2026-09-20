@@ -25,6 +25,7 @@ export interface CustomerOrgItem {
   contactPerson?: string;
   contactPhone?: string;
   remark?: string; // 备注说明
+  productId?: string; // 开通的产品（对应产品管理里的产品）
 }
 
 // 统计单元选项清单（严格根据用户组织架构图节点构建）
@@ -1047,6 +1048,20 @@ export const INITIAL_CUSTOMER_ORGS: CustomerOrgItem[] = [
     contactPhone: '137****8866'
   }
 ];
+
+export const ORG_PRODUCT_CYCLE = ['prod-tb', 'prod-zgy', 'prod-dt', 'prod-sb', 'prod-msg'] as const;
+
+export const withOrgProductBindings = (orgs: CustomerOrgItem[]): CustomerOrgItem[] =>
+  orgs.map((org, index) => ({
+    ...org,
+    productId: org.productId || ORG_PRODUCT_CYCLE[index % ORG_PRODUCT_CYCLE.length]
+  }));
+
+INITIAL_CUSTOMER_ORGS.forEach((org, index) => {
+  if (!org.productId) {
+    org.productId = ORG_PRODUCT_CYCLE[index % ORG_PRODUCT_CYCLE.length];
+  }
+});
 
 // 核心客户全量主库（供全局与各应用检索开通使用）
 export const MASTER_ENTERPRISE_CUSTOMERS: Array<Omit<CustomerOrgItem, 'version' | 'status' | 'startDate' | 'expireDate'> & {
