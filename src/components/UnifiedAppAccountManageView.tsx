@@ -657,7 +657,7 @@ export const UnifiedAppAccountManageView: React.FC<UnifiedAppAccountManageViewPr
                 <>
                   <span className="text-slate-400 font-normal">V8应用集成管理中心</span>
                   <span className="text-slate-400 font-normal">/</span>
-                  <span className="text-slate-400 font-normal">各应用统一调用组件</span>
+                  <span className="text-slate-400 font-normal">统一组件库管理</span>
                   <span className="text-slate-400 font-normal">/</span>
                   <span className="text-slate-600 font-medium">应用账号管理</span>
                 </>

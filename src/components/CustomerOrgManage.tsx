@@ -86,9 +86,6 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
 
   // 筛选与搜索状态
   const [statUnitFilter, setStatUnitFilter] = useState<string>('全部统计单元');
-  const [custSearchQuery, setCustSearchQuery] = useState<string>('');
-  const [salesPersonFilter, setSalesPersonFilter] = useState<string>('');
-  const [custVersionFilter, setCustVersionFilter] = useState<string>('全部授权');
   const [custStatusFilter, setCustStatusFilter] = useState<'全部' | 'active' | 'expired' | 'disabled' | 'trash'>('全部');
   const [productFilter, setProductFilter] = useState<string>('全部产品');
   // 服务到期日期排序状态: null | 'asc' (近到远) | 'desc' (远到近)
@@ -193,11 +190,6 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
       return false;
     }
 
-    // 2. 版本授权 (全部授权 / 试用版 / 正式版)
-    if (custVersionFilter !== '全部授权' && c.version !== custVersionFilter) {
-      return false;
-    }
-
     const isCustEnabled = c.isEnabled ?? (c.status !== 'disabled');
 
     // 3. 授权状态 (全部状态 / 开通中 / 已到期 / 已关停 / 已删除)
@@ -209,26 +201,6 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
       if (isCustEnabled || c.status === 'trash') return false;
     } else if (custStatusFilter === 'trash') {
       if (c.status !== 'trash') return false;
-    }
-
-    // 4. 客户经理搜索
-    if (salesPersonFilter.trim()) {
-      const sp = salesPersonFilter.trim().toLowerCase();
-      if (!c.salesPerson.toLowerCase().includes(sp)) {
-        return false;
-      }
-    }
-
-    // 5. 搜索匹配：客户名称、统一社会信用代码、客户唯一 ID 或客户简称
-    if (custSearchQuery.trim()) {
-      const q = custSearchQuery.trim().toLowerCase();
-      const matchName = c.orgName.toLowerCase().includes(q);
-      const matchShort = c.orgShortName ? c.orgShortName.toLowerCase().includes(q) : false;
-      const matchCode = c.orgCode.toLowerCase().includes(q);
-      const matchCredit = c.creditCode.toLowerCase().includes(q);
-      if (!matchName && !matchShort && !matchCode && !matchCredit) {
-        return false;
-      }
     }
 
     return true;
@@ -445,7 +417,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
           title="点击查看全部客户机构"
         >
           <span className="text-xs font-bold text-slate-500 flex items-center justify-between">
-            <span className="group-hover:text-blue-700 transition-colors">客户总数</span>
+            <span className="group-hover:text-blue-700 transition-colors">机构总数</span>
             <Building2 className={`w-4 h-4 ${custStatusFilter === '全部' ? 'text-[#1e376b]' : 'text-blue-600'}`} />
           </span>
           <div className="flex items-baseline gap-1.5 mt-1">
@@ -570,7 +542,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
           title="点击筛选回收站客户"
         >
           <span className="text-xs font-bold text-rose-700 flex items-center justify-between">
-            <span className="group-hover:text-rose-800 transition-colors">已在回收站</span>
+            <span className="group-hover:text-rose-800 transition-colors">已删除</span>
             <Trash2 className="w-4 h-4 text-rose-600" />
           </span>
           <div className="flex items-baseline gap-1.5 mt-1">
@@ -633,89 +605,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
               </select>
             </div>
 
-            {/* 2. 客户简称、全称、统一社会信用代码 (单行文本框, 最长50汉字, 宽度设定, 占位提示) */}
-            <div className="flex flex-col gap-1.5 shrink-0">
-              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">客户简称、全称、统一社会信用代码</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  maxLength={50}
-                  placeholder="客户简称、全称、统一社会信用代码"
-                  value={custSearchQuery}
-                  onChange={(e) => {
-                    setCustSearchQuery(e.target.value);
-                    setCurrentCustPage(1);
-                    setCustJumpPage('1');
-                  }}
-                  className="w-[200px] lg:w-[240px] px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#1e376b] font-medium shadow-2xs placeholder:text-slate-400 h-8.5"
-                />
-                {custSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustSearchQuery('');
-                      setCurrentCustPage(1);
-                      setCustJumpPage('1');
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5 rounded-full cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* 3. 客户经理 (单行文本框, 最长6汉字, 宽度设定, 占位提示) */}
-            <div className="flex flex-col gap-1.5 shrink-0">
-              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">客户经理</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  maxLength={6}
-                  placeholder="客户经理名称"
-                  value={salesPersonFilter}
-                  onChange={(e) => {
-                    setSalesPersonFilter(e.target.value);
-                    setCurrentCustPage(1);
-                    setCustJumpPage('1');
-                  }}
-                  className="w-[95px] px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#1e376b] font-medium shadow-2xs placeholder:text-slate-400 h-8.5"
-                />
-                {salesPersonFilter && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSalesPersonFilter('');
-                      setCurrentCustPage(1);
-                      setCustJumpPage('1');
-                    }}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-0.5 rounded-full cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* 4. 第五个筛选：版本授权 (下拉菜单 单选：全部授权、试用版、正式版) */}
-            <div className="flex flex-col gap-1.5 shrink-0">
-              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">版本授权</label>
-              <select
-                value={custVersionFilter}
-                onChange={(e) => {
-                  setCustVersionFilter(e.target.value);
-                  setCurrentCustPage(1);
-                  setCustJumpPage('1');
-                }}
-                className="px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#1e376b] text-slate-800 font-medium cursor-pointer shadow-2xs h-8.5"
-              >
-                <option value="全部授权">全部授权</option>
-                <option value="试用版">试用版</option>
-                <option value="正式版">正式版</option>
-              </select>
-            </div>
-
-            {/* 5. 第六个筛选：版本授权 (下拉菜单 单选：全部状态、开通中、已到期、已关停、已删除) */}
+            {/* 授权状态：全部状态、开通中、已到期、已关停、已删除 */}
             <div className="flex flex-col gap-1.5 shrink-0">
               <label className="text-xs font-bold text-slate-700 whitespace-nowrap">版本授权</label>
               <select
@@ -753,11 +643,8 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setCustSearchQuery('');
-                  setSalesPersonFilter('');
                   setStatUnitFilter('全部统计单元');
                   setProductFilter('全部产品');
-                  setCustVersionFilter('全部授权');
                   setCustStatusFilter('全部');
                   setExpireSortOrder(null);
                   setCurrentCustPage(1);
@@ -780,7 +667,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
               id="btn_open_add_cust_modal"
             >
               <Plus className="w-4 h-4" />
-              <span>授权开通新机构</span>
+              <span>新增机构</span>
             </button>
           </div>
         </div>
@@ -792,7 +679,6 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
               <tr className="bg-slate-50/90 border-b border-slate-200 text-slate-700 font-bold">
                 <th className="py-3 px-4 min-w-[260px]">客户简称 (悬浮查看详情) / 统计单元</th>
                 <th className="py-3 px-3 min-w-[120px]">开通产品</th>
-                <th className="py-3 px-3 min-w-[120px]">所属销售</th>
                 <th className="py-3 px-3 min-w-[90px]">开通版本</th>
                 <th className="py-3 px-3 min-w-[110px]">授权状态</th>
                 <th
@@ -913,30 +799,15 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                       })()}
                     </td>
 
-                    {/* 2. 所属销售 */}
-                    <td className="py-3.5 px-3 text-xs whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-slate-800 font-bold">
-                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>{cust.salesPerson}</span>
-                      </div>
-                    </td>
-
                     {/* 3. 开通版本 */}
                     <td className="py-3.5 px-3 whitespace-nowrap">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
-                            cust.version === '正式版'
-                              ? 'bg-purple-50 text-purple-700 border-purple-200 shadow-2xs'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
-                          }`}>
-                            {cust.version}
-                          </span>
-                          <span className="font-mono text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-bold">
-                            {cust.productVersion || 'V2.0.0-Release'}
-                          </span>
-                        </div>
-                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
+                        cust.version === '正式版'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200 shadow-2xs'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {cust.version}
+                      </span>
                     </td>
 
                     {/* 4. 授权状态 */}
@@ -1149,7 +1020,7 @@ export const CustomerOrgManage: React.FC<CustomerOrgManageProps> = ({
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">授权开通新机构</h3>
+                  <h3 className="text-sm font-black text-slate-900">新增机构</h3>
                   <p className="text-[11px] text-slate-500">
                     选择客户机构并指定开通产品，同一机构可分别开通多个产品
                   </p>

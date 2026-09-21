@@ -6,8 +6,6 @@
 import React, { useState } from 'react';
 import {
   Building2,
-  Boxes,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
   Info
@@ -40,7 +38,6 @@ export const UnifiedAppCustomerOrgsView: React.FC<UnifiedAppCustomerOrgsViewProp
   pageTitle,
   pageSubtitle,
   pageSubtitlePosition = 'inline',
-  rightPromptBadge
 }) => {
   // 当前选中的应用（支持从应用列表中切换）
   const [selectedAppId, setSelectedAppId] = useState<string>(
@@ -117,7 +114,7 @@ export const UnifiedAppCustomerOrgsView: React.FC<UnifiedAppCustomerOrgsViewProp
                 <>
                   <span className="text-slate-400 font-normal">V8应用集成管理中心</span>
                   <span className="text-slate-400 font-normal">/</span>
-                  <span className="text-slate-400 font-normal">各应用统一调用组件</span>
+                  <span className="text-slate-400 font-normal">统一组件库管理</span>
                   <span className="text-slate-400 font-normal">/</span>
                   <span className="text-slate-600 font-medium">客户机构</span>
                 </>
@@ -144,24 +141,6 @@ export const UnifiedAppCustomerOrgsView: React.FC<UnifiedAppCustomerOrgsViewProp
                 )}
               </div>
             </div>
-          </div>
-
-          {/* 右侧：胶囊提示标签 */}
-          <div className="flex items-center gap-3">
-            {rightPromptBadge ? (
-              <div className="flex items-center gap-2 bg-orange-50 text-orange-700 px-3.5 py-1.5 rounded-full border border-orange-200 text-xs font-semibold shadow-2xs select-none">
-                <Boxes className="w-4 h-4 text-orange-600" />
-                <span className="font-bold text-orange-700/80">所属应用:</span>
-                <span className="text-orange-900 font-medium">{rightPromptBadge}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 bg-orange-50 text-orange-700 px-3.5 py-1.5 rounded-full border border-orange-200 text-xs font-semibold shadow-2xs select-none">
-                <Boxes className="w-4 h-4 text-orange-600" />
-                <span className="text-orange-900 font-medium font-mono">
-                  /MT-AIM-API/客户机构列表
-                </span>
-              </div>
-            )}
           </div>
         </div>
 

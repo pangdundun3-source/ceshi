@@ -61,7 +61,7 @@ export const UserAppIdentitiesTableView: React.FC<UserAppIdentitiesTableViewProp
   currentApp,
   isStandalonePage = false,
   title,
-  breadcrumbs = ['各应用统一调用组件', '用户应用身份详情']
+  breadcrumbs = ['统一组件库管理', '用户应用身份详情']
 }) => {
   // Selected user for standalone mode
   const [selectedUserId, setSelectedUserId] = useState<string>(() => {

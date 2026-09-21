@@ -374,12 +374,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
     showToast(`${label}已复制到剪贴板`, 'success');
   };
 
-  // Quick copy full instance summary
-  const copyInstanceSummary = () => {
-    const summary = `【实例名称】${instance.name}\n【产品】${product.name} (${product.code} ${product.version})\n【状态】${statusLabel[instance.status]}\n【部署】${instance.deployMode} (${instance.isolation})\n【机构范围】${instance.orgScope}\n【访问端】${endpoints.map(e => e.name).join('、')}`;
-    handleCopy(summary, '实例完整信息');
-  };
-
   // Save inline edit for Basic Info
   const saveBasicInfo = () => {
     if (!editBasicForm.productName.trim()) {
@@ -1217,7 +1211,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
 
       {/* Detail Header Bar */}
       <div className="px-6 pt-4 pb-0 bg-white border-b border-slate-200 shrink-0">
-        <div className="flex items-center justify-between gap-2 text-xs text-slate-500 mb-2.5">
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2.5">
           <div className="flex items-center gap-2 flex-wrap">
             <button 
               type="button" 
@@ -1231,18 +1225,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
             <span className="text-slate-600 font-medium">{product.name} ({product.code})</span>
             <span>/</span>
             <span className="text-slate-900 font-bold">{instance.name}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={copyInstanceSummary}
-              className="px-2.5 py-1 text-xs text-slate-600 hover:text-[#1e376b] border border-slate-200 rounded-md hover:bg-slate-50 font-medium flex items-center gap-1 cursor-pointer transition-colors"
-              title="复制实例信息到剪贴板"
-            >
-              <Copy className="w-3 h-3" />
-              复制信息
-            </button>
           </div>
         </div>
 
@@ -1876,9 +1858,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                          系统根据「基础信息、访问端、组件库、菜单配置、公众号设置」5 项核心指标进行发布自检，正式发布后各端域名即可对外提供访问。
-                        </p>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -2270,15 +2249,6 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
           {/* TAB 2: 访问端管理 (Endpoints) */}
           {pane === 'endpoints' && (
             <div className="flex flex-col gap-4">
-              <div className="bg-blue-50/70 border border-blue-200/60 rounded-xl p-4 flex items-center justify-between gap-3">
-                <div className="flex items-start gap-2.5">
-                  <Globe className="w-4 h-4 text-[#1e376b] shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#1e376b] leading-relaxed">
-                    <strong>终端与域名映射机制：</strong>用户通过不同域名访问系统时，网关自动匹配【访问端 → 对应实例 → 加载端专属菜单与权限】。点击各终端卡片即可配置专属域名。
-                  </p>
-                </div>
-              </div>
-
               {/* Endpoints Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {endpoints.map((ep) => {

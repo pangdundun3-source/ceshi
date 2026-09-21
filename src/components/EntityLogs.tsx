@@ -73,7 +73,7 @@ export const EntityLogs: React.FC<EntityLogsProps> = ({ logs, onClearLogs }) => 
       {/* Title block */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 tracking-tight">主体维护</h1>
+          <h1 className="text-xl font-bold text-slate-800 tracking-tight">系统日志</h1>
           <p className="text-xs text-slate-400 mt-1">记录并审计系统核心组件更迭、数据注入以及角色行为日志轨迹</p>
         </div>
 

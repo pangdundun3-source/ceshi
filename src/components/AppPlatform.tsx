@@ -216,7 +216,7 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
           className="px-4 py-2 bg-[#1e376b] hover:bg-[#14264c] text-white rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-xs transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          新增产品 / 开通系统
+          新增产品
         </button>
       </div>
 
@@ -246,8 +246,8 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
           </span>
         </div>
 
-        {/* Product Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* Product Cards Grid：按最小宽度自适应列数，避免卡片被压窄后内部折行变形 */}
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(340px,1fr))]">
           {filteredProducts.map((product) => {
             const ins = instances.filter((item) => item.productId === product.id);
             const preferred = [...ins].sort((a, b) => (
@@ -278,10 +278,12 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
               >
                 <div className="flex flex-col gap-3">
                   {/* Card Header: Icon + Version + Publish Status + Status Switch */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div
-                        className={`w-11 h-11 rounded-xl text-white flex items-center justify-center font-black text-xs shadow-xs shrink-0 transition-all ${
+                        className={`w-11 h-11 rounded-xl text-white flex items-center justify-center font-black shadow-xs shrink-0 transition-all leading-none ${
+                          product.code.length > 3 ? 'text-[10px] tracking-tight px-1' : 'text-xs'
+                        } ${
                           isEnabled
                             ? `bg-gradient-to-br ${product.iconBg}`
                             : 'bg-slate-300 text-slate-500 grayscale'
@@ -289,27 +291,20 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
                       >
                         {product.code}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-base font-black truncate ${isEnabled ? 'text-slate-900' : 'text-slate-600'}`}>
-                            {product.name}
-                          </span>
-                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 ${
-                            isEnabled ? 'text-slate-600 bg-slate-100' : 'text-slate-400 bg-slate-200/60'
-                          }`}>
-                            {product.version}
-                          </span>
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <div className={`text-base font-black truncate ${isEnabled ? 'text-slate-900' : 'text-slate-600'}`}>
+                          {product.name}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] text-slate-400">{product.type}</span>
-                          <span className="text-slate-300 text-xs">·</span>
+                        <div className="flex items-center gap-1.5 mt-0.5 min-w-0 whitespace-nowrap">
+                          <span className="text-[11px] text-slate-400 shrink-0">{product.type}</span>
+                          <span className="text-slate-300 text-xs shrink-0">·</span>
                           {isPublished ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">
                               <CheckCircle2 className="w-2.5 h-2.5" />
                               已发布
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
                               <AlertCircle className="w-2.5 h-2.5" />
                               待发布
                             </span>
@@ -324,7 +319,7 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
                       role="switch"
                       aria-checked={isEnabled}
                       onClick={(e) => toggleProductStatus(product.id, e)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none shrink-0 ${
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer shadow-2xs select-none shrink-0 whitespace-nowrap ${
                         !isPublished
                           ? 'text-slate-500 bg-slate-100 border-slate-300 hover:bg-slate-200 hover:text-slate-700'
                           : isEnabled
@@ -340,7 +335,7 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
                       }
                     >
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                           !isPublished
                             ? 'bg-slate-400'
                             : isEnabled
@@ -349,7 +344,7 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
                         }`}
                       />
                       <span>
-                        {!isPublished ? '禁用 (未发布)' : isEnabled ? '启用' : '已禁用'}
+                        {!isPublished ? '未发布' : isEnabled ? '启用' : '禁用'}
                       </span>
                       <span
                         className={`relative inline-flex h-4 w-7 shrink-0 rounded-full border border-transparent transition-colors duration-200 ease-in-out ${
@@ -371,13 +366,13 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap pt-1 border-t border-slate-100/80">
-                    <span className="inline-flex items-center gap-1 text-slate-700">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 whitespace-nowrap pt-1 border-t border-slate-100/80">
+                    <span className="inline-flex items-center gap-1 text-slate-700 shrink-0">
                       <Monitor className="w-3.5 h-3.5 text-blue-600" />
                       <span><strong className="text-slate-900 font-bold">{configuredEndpointsCount}</strong>个端</span>
                     </span>
-                    <span>·</span>
-                    <span className="inline-flex items-center gap-1 text-slate-700">
+                    <span className="text-slate-300">·</span>
+                    <span className="inline-flex items-center gap-1 text-slate-700 shrink-0">
                       <Library className="w-3.5 h-3.5 text-indigo-600" />
                       <span><strong className="text-slate-900 font-bold">{associatedComponentsCount}</strong>个组件</span>
                     </span>
@@ -395,12 +390,12 @@ export const AppPlatform: React.FC<AppPlatformProps> = ({
                         openWizardWithProduct(product);
                       }
                     }}
-                    className="w-full px-3 py-2 bg-[#1e376b] hover:bg-[#14264c] text-white rounded-lg text-xs font-bold cursor-pointer transition-colors text-center shadow-xs flex items-center justify-center gap-1.5"
+                    className="w-full px-3 py-2 bg-[#1e376b] hover:bg-[#14264c] text-white rounded-lg text-xs font-bold cursor-pointer transition-colors text-center shadow-xs flex items-center justify-center gap-1.5 whitespace-nowrap"
                     title="进入详情控制台：支持访问端预览、组件库管理与菜单配置"
                   >
-                    <span>进入控制台配置与预览</span>
+                    <span className="truncate">进入控制台配置与预览</span>
                     {!isEnabled && (
-                      <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.2 rounded font-normal">
+                      <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-normal shrink-0">
                         {!isPublished ? '未发布' : '已停用'}
                       </span>
                     )}

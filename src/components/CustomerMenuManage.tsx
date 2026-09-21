@@ -1,16 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Building2,
-  Boxes,
-  ShieldCheck,
-  CheckCircle2,
-  Layers,
-  Sparkles,
-  Server,
-  Monitor,
-  Smartphone,
-  Tablet,
-  RotateCcw,
   SlidersHorizontal
 } from 'lucide-react';
 import {
@@ -44,11 +33,8 @@ interface CustomerEndpointConfig {
 
 export const CustomerMenuManage: React.FC<CustomerMenuManageProps> = ({
   customerOrgName,
-  customerOrgCode,
   appName = '谛听预警系统',
   appCode = 'APP-DITING-01',
-  productVersion = 'V2.0.0-Release',
-  licenseType = '正式版',
   onShowToast
 }) => {
   // 初始化该机构专属的多访问端（PC管理端、用户业务端、移动协同端、数据大屏端）及其独立菜单树副本
@@ -337,94 +323,10 @@ export const CustomerMenuManage: React.FC<CustomerMenuManageProps> = ({
     });
   }, [endpoints]);
 
-  // 重置当前端为系统默认模板
-  const handleResetCurrentEpToDefault = () => {
-    setEndpoints((prev) =>
-      prev.map((ep) => {
-        if (ep.id === activeEpId) {
-          return { ...ep, menus: JSON.parse(JSON.stringify(INITIAL_DITING_MENUS)) };
-        }
-        return ep;
-      })
-    );
-    onShowToast?.(`已将「${currentEp.name}」菜单重置为系统默认菜单模板`, 'success');
-  };
-
   return (
     <div className="flex flex-col gap-5 w-full" id="customer_exclusive_menu_manage_module">
       {/* ========================================================
-          1. 机构专属上下文横幅 (Exclusive Organization Context Banner)
-          ======================================================== */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col gap-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-[#1e376b] text-white flex items-center justify-center shadow-md shrink-0">
-              <Building2 className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                  {customerOrgName} · 专属菜单配置
-                </h2>
-                <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                  统一社会信用代码: {customerOrgCode}
-                </span>
-                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                  {licenseType}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Boxes className="w-3.5 h-3.5 text-blue-600" />
-                  <span>开通产品: </span>
-                  <strong className="text-slate-800 font-bold">{appName}</strong>
-                  <span className="font-mono text-slate-400">({appCode})</span>
-                </span>
-                <span className="text-slate-300">|</span>
-                <span className="flex items-center gap-1">
-                  <span>软件版本: </span>
-                  <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                    {productVersion}
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50/80 text-[#1e376b] border border-blue-200/80 rounded-xl text-xs font-bold shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>同步产品页面菜单配置全部功能体系</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleResetCurrentEpToDefault}
-              className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:text-rose-600 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-              title="将当前访问端的菜单配置一键还原为系统产品模板"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>还原当前端默认模板</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 提示条说明 */}
-        <div className="flex items-center justify-between gap-3 text-[11px] text-slate-600 bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-2.5 flex-wrap">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>
-              已全面同步<strong>产品控制台菜单全部功能</strong>：多访问端自由切换、同级拖拽重排序、组件库能力挂载绑定、查/增/改/删/导/审 动作权限细粒度分配、路由与外链定制、前台显隐（不可见沉底置灰）、JSON导入导出、操作审计日志与实时发布。
-            </span>
-          </div>
-          <span className="text-slate-400 font-mono text-[10px] shrink-0">
-            专属数据实时隔离存证
-          </span>
-        </div>
-      </div>
-
-      {/* ========================================================
-          2. 访问端切换导航条 (Endpoints Navigation Bar - 同步产品页面模式)
+          访问端切换导航条
           ======================================================== */}
       <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex flex-col gap-3">
         <div className="flex items-center justify-between flex-wrap gap-2">

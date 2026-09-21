@@ -3,7 +3,6 @@ import {
   ArrowLeft, 
   Check, 
   ChevronRight, 
-  Sparkles, 
   Layers, 
   Globe, 
   Server, 
@@ -37,7 +36,6 @@ import {
   Minimize2,
   SkipForward,
   FastForward,
-  ArrowRight,
   Monitor,
   Smartphone,
   Tablet,
@@ -79,10 +77,10 @@ const AVATAR_ICON_MAP: Record<string, React.ElementType> = {
 export type AppCreateWizardStep = 1 | 2 | 3 | 4;
 
 const STEPS: Array<{ step: AppCreateWizardStep; label: string; optional?: boolean; desc: string }> = [
-  { step: 1, label: '1. 基础信息配置', desc: '产品定义与LOGO' },
-  { step: 2, label: '2. 产品组件库勾选', optional: true, desc: '可选 · 可跳过' },
-  { step: 3, label: '3. 访问端配置', optional: true, desc: '可选 · 可跳过' },
-  { step: 4, label: '4. 确认开通', desc: '概览核对与生效' },
+  { step: 1, label: '基础信息', desc: '产品定义与LOGO' },
+  { step: 2, label: '组件库', optional: true, desc: '可选 · 可跳过' },
+  { step: 3, label: '访问端', optional: true, desc: '可选 · 可跳过' },
+  { step: 4, label: '确认开通', desc: '概览核对与生效' },
 ];
 
 interface AppPlatformWizardProps {
@@ -242,27 +240,6 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
   const clearAllModules = () => {
     setModules([]);
     showToast('已清空模块勾选（可随时跳过）', 'info');
-  };
-
-  const selectCoreModules = () => {
-    const coreKeys = UNIFIED_CALL_MODULES.filter(m => m.kernel === '业务核' || m.menu === 'unified_org_structure').map(m => m.menu as string);
-    setModules(coreKeys);
-    showToast('已应用核心推荐组件', 'success');
-  };
-
-  // Auto fill recommendation hosts in Step 3
-  const fillRecommendedHosts = () => {
-    const newHosts = { ...hosts };
-    selectedKinds.forEach((kind) => {
-      if (kind === 'intranet') {
-        newHosts[kind] = '10.10.10.20';
-      } else {
-        const prefix = kind === 'admin_web' ? 'admin' : kind === 'user_web' ? 'user' : kind;
-        newHosts[kind] = `${prefix}.${codeSlug}.example.com`;
-      }
-    });
-    setHosts(newHosts);
-    showToast('已为选中的访问端生成推荐域名', 'success');
   };
 
   // Validation
@@ -522,28 +499,20 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
         }`}
       >
         {/* Modal Header */}
-        <div className="bg-white px-5 sm:px-6 py-3.5 border-b border-slate-200 flex items-center justify-between gap-4 shrink-0 select-none">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="bg-white px-5 sm:px-6 py-3.5 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0 select-none">
+          <div className="flex items-center gap-3 min-w-0 shrink">
             <div className="w-9 h-9 rounded-xl bg-[#1e376b] text-white flex items-center justify-center shadow-2xs shrink-0">
               <Layers className="w-5 h-5" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-black text-slate-900 truncate">
-                  {initialProduct ? `开通业务系统 · ${initialProduct.name}` : '新增产品 / 开通业务系统'}
-                </h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#1e376b] border border-blue-200/60 shrink-0">
-                  向导式配置
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                三步配置基础、组件与访问端，后续均可在详情页随时灵活调整
-              </p>
+            <div className="min-w-0 hidden sm:block">
+              <h2 className="text-sm font-black text-slate-900 truncate">
+                {initialProduct ? `开通业务系统 · ${initialProduct.name}` : '新增产品 / 开通业务系统'}
+              </h2>
             </div>
           </div>
 
           {/* Stepper Tabs in Modal Header (Desktop) */}
-          <div className="hidden md:flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60">
+          <div className="hidden md:flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 overflow-x-auto scrollbar-none flex-nowrap min-w-0">
             {STEPS.map((item) => {
               const done = step > item.step;
               const active = step === item.step;
@@ -561,7 +530,7 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
                       showToast('请先完善第一步「基础信息配置」', 'warning');
                     }
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                     active
                       ? 'bg-white text-[#1e376b] shadow-xs'
                       : done
@@ -573,7 +542,7 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
                   title={item.desc}
                 >
                   <span
-                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black ${
+                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
                       active
                         ? 'bg-[#1e376b] text-white'
                         : done
@@ -585,8 +554,8 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
                   </span>
                   <span>{item.label}</span>
                   {item.optional && (
-                    <span className="text-[10px] text-slate-400 font-normal ml-0.5">
-                      (可跳过)
+                    <span className="text-[10px] text-slate-400 font-normal">
+                      可选
                     </span>
                   )}
                 </button>
@@ -646,9 +615,6 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
                     <Layers className="w-4 h-4 text-[#1e376b]" />
                     第一步：基础信息配置
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    配置产品基础名称、产品类型、产品LOGO与品牌主题色。
-                  </p>
                 </div>
                 <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
                   带 * 为必填项
@@ -709,9 +675,6 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     <span>产品LOGO与品牌色</span>
-                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.2 rounded-full border border-blue-200/80">
-                      单LOGO唯一生效
-                    </span>
                   </div>
                   <span className="text-[11px] text-slate-400">支持 PNG/JPG/SVG/WebP 格式图片</span>
                 </div>
@@ -786,9 +749,6 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
                       <div>
                         <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                           <span>点击或拖拽上传产品LOGO</span>
-                          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
-                            单LOGO唯一展示
-                          </span>
                         </div>
                         <p className="text-[11px] text-slate-400 mt-0.5">
                           推荐上传透明背景正方形 PNG / SVG / JPG / WebP，文件小于 2MB
@@ -862,59 +822,13 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
           {step === 2 && (
             <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col gap-5 shadow-2xs">
               <div className="border-b border-slate-100 pb-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Boxes className="w-4 h-4 text-[#1e376b]" />
-                    第二步：产品组件库勾选
-                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                      可选 · 可随时跳过
-                    </span>
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSkipStep2}
-                      className="text-xs text-[#1e376b] font-bold hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>跳过此步 (进入访问端配置)</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  选择「{productName || '此产品'}」需接入的业务核、组织核与开通核能力。也可直接跳过，后续在产品详情页随时配置。
-                </p>
-              </div>
-
-              {/* Notice Banner: Can be skipped */}
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-blue-100 text-[#1e376b] flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs text-slate-700">
-                    <strong className="text-slate-900">可选步骤说明：</strong>
-                    暂不确定所需组件？您可以直接跳过此步，产品将以纯净架构开通。开通后可前往「产品详情页 - 组件能力库」随时按需接入。
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={handleSkipStep2}
-                    className="px-3 py-1.5 bg-white border border-blue-200 hover:border-blue-300 text-[#1e376b] text-xs font-bold rounded-lg shadow-2xs cursor-pointer flex items-center gap-1 transition-colors"
-                  >
-                    <span>跳过此步</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSkipToStep4FromStep2}
-                    className="px-3 py-1.5 bg-[#1e376b] hover:bg-[#14264c] text-white text-xs font-bold rounded-lg shadow-2xs cursor-pointer flex items-center gap-1 transition-colors"
-                  >
-                    <span>跳过后续，直接开通</span>
-                    <FastForward className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <Boxes className="w-4 h-4 text-[#1e376b]" />
+                  第二步：产品组件库勾选
+                  <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                    可选 · 可随时跳过
+                  </span>
+                </h3>
               </div>
 
               {/* 2.1 Filter & Actions Bar */}
@@ -929,24 +843,9 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
                         已选 {modules.length} / {UNIFIED_CALL_MODULES.length}
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
-                      <span>业务核: <strong className="text-slate-700">{kernelStats.businessCount}</strong></span>
-                      <span>·</span>
-                      <span>组织核: <strong className="text-slate-700">{kernelStats.orgCount}</strong></span>
-                      <span>·</span>
-                      <span>开通核: <strong className="text-slate-700">{kernelStats.openCount}</strong></span>
-                    </div>
                   </div>
 
                   <div className="flex items-center gap-1.5 text-xs">
-                    <button
-                      type="button"
-                      onClick={selectCoreModules}
-                      className="px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold cursor-pointer flex items-center gap-1"
-                    >
-                      <Sparkles className="w-3 h-3 text-amber-600" />
-                      推荐核心
-                    </button>
                     <button
                       type="button"
                       onClick={selectAllModules}
@@ -1052,59 +951,14 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
           {/* ================= STEP 3: 访问端配置 (可跳过) ================= */}
           {step === 3 && (
             <div className="bg-white rounded-xl border border-slate-200 p-6 flex flex-col gap-5 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-[#1e376b]" />
-                    第三步：访问端配置与域名绑定
-                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                      可选 · 可随时跳过
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    为「{productName || '此产品'}」选定访问入口与域名。也可直接跳过，后续在产品详情页随时增设。
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={fillRecommendedHosts}
-                    className="px-3 py-1.5 rounded-lg border border-[#1e376b] bg-blue-50 text-[#1e376b] text-xs font-bold hover:bg-blue-100 cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shrink-0"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    一键生成推荐域名
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSkipStep3}
-                    className="text-xs text-[#1e376b] font-bold hover:underline flex items-center gap-1 cursor-pointer shrink-0"
-                  >
-                    <span>跳过此步 (去确认开通)</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Notice Banner: Can be skipped */}
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-blue-100 text-[#1e376b] flex items-center justify-center shrink-0">
-                    <Globe className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs text-slate-700">
-                    <strong className="text-slate-900">可选步骤说明：</strong>
-                    暂未确定访问域名或终端架构？您可以直接跳过此步。开通后可前往「产品详情页 - 访问端管理」随时一键开通 Web PC 端、移动端或微信小程序端，并随时绑定域名。
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSkipStep3}
-                  className="px-3 py-1.5 bg-[#1e376b] hover:bg-[#14264c] text-white text-xs font-bold rounded-lg shadow-2xs cursor-pointer flex items-center gap-1 shrink-0 self-end sm:self-auto transition-colors"
-                >
-                  <span>跳过此步，直接去开通</span>
-                  <FastForward className="w-3.5 h-3.5" />
-                </button>
+              <div className="border-b border-slate-100 pb-4">
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#1e376b]" />
+                  第三步：访问端配置与域名绑定
+                  <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                    可选 · 可随时跳过
+                  </span>
+                </h3>
               </div>
 
               {/* Endpoints Selection Grid */}
@@ -1186,9 +1040,6 @@ export const AppPlatformWizard: React.FC<AppPlatformWizardProps> = ({
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   第四步：确认配置概览并开通
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  核对产品基础定义、产品组件与访问端。确认后将立即创建并正式生效。已跳过的步骤后续均可在产品详情页随时按需补充。
-                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

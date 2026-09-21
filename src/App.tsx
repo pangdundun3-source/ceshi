@@ -235,7 +235,7 @@ export default function App() {
     });
   }, []);
 
-  // 全局应用账号共享状态：保证「各应用统一调用组件 > 应用账号管理」与「模拟指令流转MT > 开通用户账号列表」数据双向联动
+  // 全局应用账号共享状态：保证「统一组件库管理 > 应用账号管理」与「模拟指令流转MT > 开通用户账号列表」数据双向联动
   const [sharedAppAccounts, setSharedAppAccounts] = useState<AppAccountUserRecord[]>(() => INITIAL_APP_ACCOUNTS);
 
   useEffect(() => {
@@ -593,15 +593,15 @@ export default function App() {
       case MenuItem.UnifiedOrgPermissionDict:
         return <UnifiedOrgPermissionDictView />;
 
-      // 各应用统一调用组件 -> 二级菜单：机构界面设置
+      // 统一组件库管理 -> 二级菜单：机构界面设置
       case MenuItem.UnifiedOrgUISettings:
         return <UnifiedOrgUISettingsView />;
 
-      // 各应用统一调用组件 -> 二级菜单：外部用户组织列表
+      // 统一组件库管理 -> 二级菜单：外部用户组织列表
       case MenuItem.UnifiedExtUserOrgList:
         return <UnifiedExtUserOrgListView />;
 
-      // 主体维护日志
+      // 系统日志
       case MenuItem.EntityLog:
         return (
           <EntityLogs 
@@ -1283,7 +1283,7 @@ export default function App() {
               <div className="flex items-center gap-3 bg-blue-50/50 p-4 rounded-lg border border-blue-100/30">
                 <ShieldAlert className="w-5 h-5 text-blue-500 shrink-0" />
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  <strong>参数生效提示:</strong> 修改操作人或部门后，您在「次级产品」中所做的新增，或是「合同审核」中驳回/审批的行为，都会以对应的操作人 IP 及时间戳，安全归档到「主体维护日志」中以供审计。
+                  <strong>参数生效提示:</strong> 修改操作人或部门后，您在「次级产品」中所做的新增，或是「合同审核」中驳回/审批的行为，都会以对应的操作人 IP 及时间戳，安全归档到「系统日志」中以供审计。
                 </p>
               </div>
             </div>

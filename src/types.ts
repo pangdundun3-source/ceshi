@@ -60,7 +60,7 @@ export enum MenuItem {
   UnifiedOrgUISettings = 'unified_org_ui_settings',
   UnifiedExtUserOrgList = 'unified_ext_user_org_list',
 
-  // 各应用统一调用组件 -> 二级菜单（业务核 / 组织核 / 开通核）
+  // 统一组件库管理 -> 二级菜单（业务核 / 组织核 / 开通核）
   UnifiedTemplateConfig = 'unified_template_config',
   UnifiedTemplateReport = 'unified_template_report',
   UnifiedTemplateDispatch = 'unified_template_dispatch',

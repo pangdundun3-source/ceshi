@@ -11,7 +11,6 @@ import {
   Search,
   RotateCcw,
   Folder,
-  FileJson,
   Globe,
   Settings,
   Activity,
@@ -37,7 +36,6 @@ import {
   Copy,
   AlertTriangle,
   Upload,
-  Download,
   Image as ImageIcon,
   Code2,
   ExternalLink,
@@ -263,18 +261,6 @@ export interface SysMenuItem {
   isModuleComponent?: boolean; // 标识是否为挂载的端组件模块
   kernel?: string; // 组件所属核，如'业务核' | '组织核' | '开通核' | '私有组件'
   moduleActions?: string[]; // 选中的具体功能操作编码列表（二次勾选：增、删、改、查、导、审等）
-}
-
-export interface MenuAuditLog {
-  id: string;
-  timestamp: string;
-  operator: string;
-  menuName: string;
-  menuCode: string;
-  field: string;
-  oldValue: string;
-  newValue: string;
-  ip: string;
 }
 
 // 可选图标列表供可视化选择
@@ -907,12 +893,12 @@ export const MenuManage: React.FC<MenuManageProps> = ({
   const [addMenuParentId, setAddMenuParentId] = useState<string>('m_dt_1');
   const [addMenuError, setAddMenuError] = useState<string>('');
 
-  // 模态弹窗状态：操作日志、JSON 导入导出、永久删除确认、恢复默认模板确认
-  const [isAuditLogsModalOpen, setIsAuditLogsModalOpen] = useState(false);
-  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  // 模态弹窗状态：永久删除确认、恢复默认模板确认、实时预览
   const [isResetDefaultModalOpen, setIsResetDefaultModalOpen] = useState(false);
-  const [jsonText, setJsonText] = useState('');
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewActiveId, setPreviewActiveId] = useState('');
+  const [previewExpandedIds, setPreviewExpandedIds] = useState<string[]>([]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // 恢复为系统默认菜单模板
@@ -923,19 +909,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
     setEditForm(cloned[0] || null);
     setIsResetDefaultModalOpen(false);
     onShowToast?.('已成功重置恢复为系统初始菜单模板！', 'success');
-
-    const newLog: MenuAuditLog = {
-      id: 'log_' + Date.now(),
-      timestamp: new Date().toLocaleString(),
-      operator: '系统管理员',
-      menuName: '全部菜单树',
-      menuCode: 'ALL_MENUS',
-      field: '重置默认菜单模板',
-      oldValue: '自定义配置',
-      newValue: '系统初始模板',
-      ip: '10.128.4.12'
-    };
-    setAuditLogs(logs => [newLog, ...logs]);
   };
 
   // 拖拽排序状态（同级菜单拖拽排序）
@@ -948,32 +921,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
 
   // 上传文件 ref
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 操作审计日志记录
-  const [auditLogs, setAuditLogs] = useState<MenuAuditLog[]>([
-    {
-      id: 'log_01',
-      timestamp: '2026-09-09 14:15:20',
-      operator: '系统管理员',
-      menuName: '网格员上报事件',
-      menuCode: 'DT_REPORT_GRID',
-      field: '菜单名称',
-      oldValue: '下沉线索上报',
-      newValue: '网格员上报事件',
-      ip: '10.128.4.12'
-    },
-    {
-      id: 'log_02',
-      timestamp: '2026-09-09 11:32:04',
-      operator: '系统管理员',
-      menuName: '周期研判报告',
-      menuCode: 'DT_ANA_PERIODIC',
-      field: '前台显示状态',
-      oldValue: '显示',
-      newValue: '隐藏',
-      ip: '10.128.4.12'
-    }
-  ]);
 
   // 当前选中的菜单
   const currentSelectedMenu = useMemo(() => {
@@ -1018,20 +965,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
       if (!target) return prev;
       const nextVisible = !target.visible;
       const updated = prev.map(m => (m.id === menuId ? { ...m, visible: nextVisible } : m));
-
-      // 记录审计日志
-      const newLog: MenuAuditLog = {
-        id: 'log_' + Date.now(),
-        timestamp: new Date().toLocaleString(),
-        operator: '系统管理员',
-        menuName: target.menuName,
-        menuCode: target.menuCode,
-        field: '前台显示状态',
-        oldValue: target.visible ? '前台显示' : '前台隐藏',
-        newValue: nextVisible ? '前台显示' : '前台隐藏',
-        ip: '10.128.4.12'
-      };
-      setAuditLogs(logs => [newLog, ...logs]);
 
       onShowToast?.(
         `菜单「${target.menuName}」已设为：${nextVisible ? '前台显示（可正常排序）' : '前台隐藏（已沉底置灰并加删除线）'}`,
@@ -1156,9 +1089,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
       return;
     }
 
-    const prevItem = menus.find(m => m.id === editForm.id);
-    const isNew = editForm.isNewPlaceholder;
-
     // 清除占位标识并固化
     const savedItem: SysMenuItem = {
       ...editForm,
@@ -1170,22 +1100,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
     setMenus(prev => prev.map(m => (m.id === editForm.id ? savedItem : m)));
     setEditForm(savedItem);
     setIsFormDirty(false);
-
-    // 记录审计日志
-    setAuditLogs(logs => [
-      {
-        id: 'log_' + Date.now(),
-        timestamp: new Date().toLocaleString(),
-        operator: '系统管理员',
-        menuName: savedItem.menuName,
-        menuCode: savedItem.menuCode,
-        field: isNew ? '新增菜单' : '配置变更',
-        oldValue: isNew ? '无' : prevItem?.menuName || '',
-        newValue: savedItem.menuName,
-        ip: '10.128.4.12'
-      },
-      ...logs
-    ]);
 
     onShowToast?.(`菜单「${savedItem.menuName}」配置已成功保存！`, 'success');
   };
@@ -1232,22 +1146,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
       setEditForm(null);
     }
     setIsFormDirty(false);
-
-    // 记录审计日志
-    setAuditLogs(logs => [
-      {
-        id: 'log_' + Date.now(),
-        timestamp: new Date().toLocaleString(),
-        operator: '系统管理员',
-        menuName: targetName,
-        menuCode: editForm.menuCode,
-        field: '永久删除',
-        oldValue: targetName,
-        newValue: '已删除',
-        ip: '10.128.4.12'
-      },
-      ...logs
-    ]);
 
     onShowToast?.(`菜单「${targetName}」及其关联数据已永久删除`, 'info');
   };
@@ -1478,31 +1376,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
     onShowToast?.('菜单配置已成功保存并发布至前端网关与服务节点！', 'success');
   };
 
-  // 导出 JSON
-  const handleExportJson = () => {
-    const jsonStr = JSON.stringify(menus, null, 2);
-    setJsonText(jsonStr);
-    setIsJsonModalOpen(true);
-  };
-
-  // 导入 JSON
-  const handleImportJson = () => {
-    try {
-      const parsed = JSON.parse(jsonText);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].menuCode) {
-        setMenus(parsed);
-        setSelectedMenuId(parsed[0].id);
-        setEditForm({ ...parsed[0] });
-        setIsJsonModalOpen(false);
-        onShowToast?.(`成功导入 ${parsed.length} 个菜单配置项！`, 'success');
-      } else {
-        alert('导入失败：JSON 格式不符合规范');
-      }
-    } catch {
-      alert('导入失败：JSON 解析错误，请检查语法');
-    }
-  };
-
   // 上传本地图标文件处理
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1570,6 +1443,16 @@ export const MenuManage: React.FC<MenuManageProps> = ({
     return menus.filter(m => m.parentId === '0');
   }, [menus]);
 
+  const handleOpenPreview = () => {
+    const visible = sortMenuItems(menus.filter(m => m.visible !== false));
+    const roots = visible.filter(m => m.parentId === '0');
+    const first = roots[0];
+    const kids = first ? visible.filter(m => m.parentId === first.id) : [];
+    setPreviewActiveId(kids[0]?.id || first?.id || '');
+    setPreviewExpandedIds(first ? [first.id] : []);
+    setIsPreviewOpen(true);
+  };
+
   // 渲染菜单图标预览辅助组件
   const renderIconPreview = (item: SysMenuItem, className = 'w-4 h-4') => {
     if (!item.hasIcon) {
@@ -1600,7 +1483,7 @@ export const MenuManage: React.FC<MenuManageProps> = ({
       className="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-5 sm:p-6 flex flex-col gap-6"
       id="menu_management_container"
     >
-      {/* ---------------- 顶部标题栏（主标题，最右侧放置“导入”、“导出”、“保存并发布”按钮） ---------------- */}
+      {/* ---------------- 顶部标题栏（主标题，最右侧放置“恢复默认”、“保存并发布”按钮） ---------------- */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200/90">
         <div>
           <div className="flex items-center gap-2.5">
@@ -1612,30 +1495,22 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                 <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                   {endpointName ? `${endpointName} · 菜单配置` : '默认菜单管理'}
                 </h2>
-                {endpointName && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-[#1e376b] text-white flex items-center gap-1 shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    实时联动当前端
-                  </span>
-                )}
+                <button
+                  type="button"
+                  onClick={handleOpenPreview}
+                  className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-[#1e376b] hover:bg-[#14264c] text-white flex items-center gap-1 shadow-2xs cursor-pointer transition-colors"
+                  title="打开当前端菜单实时预览"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  实时预览
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 最右侧：审计日志、恢复默认、导入、导出、保存并发布按钮 */}
+        {/* 最右侧：恢复默认、保存并发布按钮 */}
         <div className="flex items-center gap-2 flex-wrap shrink-0">
-          {/* 操作审计日志 */}
-          <button
-            type="button"
-            onClick={() => setIsAuditLogsModalOpen(true)}
-            className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-            title="查看操作变更审计流水"
-          >
-            <History className="w-3.5 h-3.5 text-blue-600" />
-            <span>审计日志</span>
-          </button>
-
           {/* 恢复为默认系统模板 */}
           <button
             type="button"
@@ -1645,31 +1520,6 @@ export const MenuManage: React.FC<MenuManageProps> = ({
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
             <span>恢复默认</span>
-          </button>
-
-          {/* 导入 */}
-          <button
-            type="button"
-            onClick={() => {
-              setJsonText('');
-              setIsJsonModalOpen(true);
-            }}
-            className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-            title="导入菜单配置 JSON"
-          >
-            <Upload className="w-3.5 h-3.5 text-indigo-600" />
-            <span>导入</span>
-          </button>
-
-          {/* 导出 */}
-          <button
-            type="button"
-            onClick={handleExportJson}
-            className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-            title="导出菜单配置 JSON"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-600" />
-            <span>导出</span>
           </button>
 
           {/* 保存并发布 */}
@@ -2810,111 +2660,63 @@ export const MenuManage: React.FC<MenuManageProps> = ({
                   )}
                 </div>
 
-                {/* ---------- 卡片 4: 打开方式与前台显示状态 ---------- */}
+                {/* ---------- 卡片 4: 打开方式 ---------- */}
                 <div className="bg-slate-50/60 rounded-xl border border-slate-200/80 p-4 flex flex-col gap-3.5 shadow-2xs">
                   <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
                     <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                      04 页面行为与显示状态
+                      04 页面行为
                     </span>
-                    <span className="text-[10px] text-slate-400">窗口模式与前台可见性</span>
+                    <span className="text-[10px] text-slate-400">窗口打开方式</span>
                   </div>
 
-                  <div className="flex flex-col gap-3">
-                    {/* 打开方式 */}
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-700">窗口打开方式</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditForm({ ...editForm, target: 'frame' });
-                            setIsFormDirty(true);
-                          }}
-                          className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                            editForm.target === 'frame'
-                              ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
-                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <Maximize2 className="w-3.5 h-3.5" />
-                          <span>整个框架(_top)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditForm({ ...editForm, target: '_blank' });
-                            setIsFormDirty(true);
-                          }}
-                          className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                            editForm.target === '_blank'
-                              ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
-                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>新窗口(_blank)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditForm({ ...editForm, target: '_self' });
-                            setIsFormDirty(true);
-                          }}
-                          className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                            editForm.target === '_self'
-                              ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
-                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <span>本窗口(_self)</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 前台显示状态 */}
-                    <div className="flex items-center justify-between p-3 bg-white border border-slate-200/90 rounded-xl">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-bold text-slate-800">前台显示状态</span>
-                        <span className="text-[11px] text-slate-500">
-                          {editForm.visible
-                            ? '正常在前台导航中显示并参与排序'
-                            : '在前台隐藏，在左侧沉底、图标置灰且不可移动'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditForm({ ...editForm, visible: true });
-                            setIsFormDirty(true);
-                          }}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
-                            editForm.visible
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>可见</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditForm({ ...editForm, visible: false });
-                            setIsFormDirty(true);
-                          }}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
-                            !editForm.visible
-                              ? 'bg-slate-600 text-white border-slate-600 shadow-2xs'
-                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          <EyeOff className="w-3.5 h-3.5" />
-                          <span>不可见</span>
-                        </button>
-                      </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-700">窗口打开方式</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditForm({ ...editForm, target: 'frame' });
+                          setIsFormDirty(true);
+                        }}
+                        className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          editForm.target === 'frame'
+                            ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        <span>整个框架(_top)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditForm({ ...editForm, target: '_blank' });
+                          setIsFormDirty(true);
+                        }}
+                        className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          editForm.target === '_blank'
+                            ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>新窗口(_blank)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditForm({ ...editForm, target: '_self' });
+                          setIsFormDirty(true);
+                        }}
+                        className={`py-2 px-2.5 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          editForm.target === '_self'
+                            ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>本窗口(_self)</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -3142,128 +2944,7 @@ export const MenuManage: React.FC<MenuManageProps> = ({
       )}
 
       {/* ========================================================
-          浮框弹窗 3：JSON 导入/导出
-          ======================================================== */}
-      {isJsonModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <FileJson className="w-5 h-5 text-blue-600" />
-                <h4 className="text-sm font-black text-slate-900">菜单配置 JSON 导入 / 导出</h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsJsonModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>支持复制以下配置代码备份，或粘贴新的 JSON 数据导入</span>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(jsonText, 'json')}
-                  className="text-blue-600 font-bold hover:underline cursor-pointer"
-                >
-                  {copiedKey === 'json' ? '已复制成功' : '复制 JSON'}
-                </button>
-              </div>
-              <textarea
-                value={jsonText}
-                onChange={e => setJsonText(e.target.value)}
-                rows={12}
-                className="w-full p-3 font-mono text-[11px] bg-slate-900 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsJsonModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
-              >
-                关闭
-              </button>
-              <button
-                type="button"
-                onClick={handleImportJson}
-                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg cursor-pointer"
-              >
-                应用并导入 JSON
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          浮框弹窗 4：操作日志模态框
-          ======================================================== */}
-      {isAuditLogsModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-blue-600" />
-                <h4 className="text-sm font-black text-slate-900">菜单管理操作审计日志</h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAuditLogsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="max-h-96 overflow-y-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-500">
-                    <th className="p-2.5 font-bold">时间</th>
-                    <th className="p-2.5 font-bold">操作人</th>
-                    <th className="p-2.5 font-bold">菜单名称</th>
-                    <th className="p-2.5 font-bold">操作类型/字段</th>
-                    <th className="p-2.5 font-bold">旧值</th>
-                    <th className="p-2.5 font-bold">新值</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditLogs.map(log => (
-                    <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50/80">
-                      <td className="p-2.5 font-mono text-[11px] text-slate-500">{log.timestamp}</td>
-                      <td className="p-2.5 font-bold text-slate-800">{log.operator}</td>
-                      <td className="p-2.5 font-bold text-blue-900">{log.menuName}</td>
-                      <td className="p-2.5 text-slate-600">{log.field}</td>
-                      <td className="p-2.5 text-slate-400 font-mono text-[11px]">{log.oldValue || '-'}</td>
-                      <td className="p-2.5 text-emerald-700 font-mono text-[11px] font-bold">
-                        {log.newValue}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setIsAuditLogsModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          浮框弹窗 5：恢复系统默认菜单模板确认框
+          浮框弹窗：恢复系统默认菜单模板确认框
           ======================================================== */}
       {isResetDefaultModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
@@ -3301,6 +2982,188 @@ export const MenuManage: React.FC<MenuManageProps> = ({
           </div>
         </div>
       )}
+
+      {isPreviewOpen && (() => {
+        const visibleMenus = sortMenuItems(menus.filter(m => m.visible !== false));
+        const previewRoots = visibleMenus.filter(m => m.parentId === '0');
+        const isWechat = endpointKind === 'wechat' || endpointKind === 'h5';
+        const activeItem = visibleMenus.find(m => m.id === previewActiveId) || previewRoots[0] || null;
+        const activeParent = activeItem
+          ? (activeItem.parentId === '0' ? activeItem : visibleMenus.find(m => m.id === activeItem.parentId) || activeItem)
+          : null;
+
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+            onClick={() => setIsPreviewOpen(false)}
+          >
+            <div
+              className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-5xl h-[min(82vh,760px)] flex flex-col overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0 bg-slate-50/80">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#1e376b] text-white flex items-center justify-center shrink-0">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-black text-slate-900 truncate">
+                      实时预览 · {endpointName || '默认菜单'}
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      {appName} · 前台可见 {visibleMenus.length} 项
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                  title="关闭预览"
+                >
+                  <X className="w-4.5 h-4.5" />
+                </button>
+              </div>
+
+              <div className="flex-1 min-h-0 bg-slate-100 p-4 flex items-center justify-center">
+                {visibleMenus.length === 0 ? (
+                  <div className="text-center text-slate-500 text-sm">
+                    当前没有前台可见菜单，请先在左侧树中打开显示。
+                  </div>
+                ) : isWechat ? (
+                  <div className="w-[340px] h-[620px] bg-white rounded-[32px] border-4 border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+                    <div className="px-5 pt-4 pb-2 flex items-center justify-between text-[11px] font-bold text-slate-900 shrink-0">
+                      <span>09:41</span>
+                      <span className="w-16 h-3 bg-slate-900 rounded-full" />
+                      <span>5G</span>
+                    </div>
+                    <div className="px-4 py-2.5 border-b border-slate-100 font-black text-sm text-slate-900 truncate">
+                      {appName}
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-3 grid grid-cols-3 gap-2 content-start">
+                      {visibleMenus.map(item => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setPreviewActiveId(item.id)}
+                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border cursor-pointer transition-colors ${
+                            previewActiveId === item.id
+                              ? 'bg-blue-50 border-blue-200 text-[#1e376b]'
+                              : 'bg-slate-50 border-slate-100 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#1e376b]">
+                            {renderIconPreview(item, 'w-4 h-4')}
+                          </div>
+                          <span className="text-[10px] font-bold truncate w-full text-center">{item.menuName}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {activeItem && (
+                      <div className="px-4 py-3 border-t border-slate-100 text-[11px] text-slate-500 shrink-0">
+                        当前：<span className="font-bold text-slate-800">{activeItem.menuName}</span>
+                        {activeItem.routePath ? ` · ${activeItem.routePath}` : ''}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-full h-full max-w-4xl bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden flex flex-col">
+                    <div className="h-11 px-4 bg-[#1e376b] text-white flex items-center justify-between shrink-0">
+                      <span className="text-xs font-black truncate">{appName}</span>
+                      <span className="text-[10px] bg-white/15 px-2 py-0.5 rounded-full font-bold">
+                        {endpointName || '管理端'}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-h-0 flex">
+                      <aside className="w-[220px] shrink-0 bg-[#14264c] text-white/90 overflow-y-auto py-2">
+                        {previewRoots.map(root => {
+                          const children = visibleMenus.filter(m => m.parentId === root.id);
+                          const expanded = previewExpandedIds.includes(root.id) || children.some(c => c.id === previewActiveId);
+                          const rootActive = previewActiveId === root.id;
+                          return (
+                            <div key={root.id}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (children.length > 0) {
+                                    setPreviewExpandedIds(prev =>
+                                      prev.includes(root.id) ? prev.filter(id => id !== root.id) : [...prev, root.id]
+                                    );
+                                    setPreviewActiveId(children[0].id);
+                                  } else {
+                                    setPreviewActiveId(root.id);
+                                  }
+                                }}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-left text-xs font-bold cursor-pointer ${
+                                  rootActive || children.some(c => c.id === previewActiveId)
+                                    ? 'bg-white/12 text-white'
+                                    : 'hover:bg-white/8 text-white/80'
+                                }`}
+                              >
+                                <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                                  {renderIconPreview(root, 'w-3.5 h-3.5')}
+                                </span>
+                                <span className="truncate flex-1">{root.menuName}</span>
+                                {children.length > 0 && (
+                                  expanded
+                                    ? <ChevronDown className="w-3 h-3 shrink-0 opacity-70" />
+                                    : <ChevronRight className="w-3 h-3 shrink-0 opacity-70" />
+                                )}
+                              </button>
+                              {expanded && children.map(child => (
+                                <button
+                                  key={child.id}
+                                  type="button"
+                                  onClick={() => setPreviewActiveId(child.id)}
+                                  className={`w-full flex items-center gap-2 pl-8 pr-3 py-1.5 text-left text-[11px] font-medium cursor-pointer ${
+                                    previewActiveId === child.id
+                                      ? 'bg-blue-500/30 text-white'
+                                      : 'text-white/70 hover:bg-white/8 hover:text-white'
+                                  }`}
+                                >
+                                  <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+                                    {renderIconPreview(child, 'w-3 h-3')}
+                                  </span>
+                                  <span className="truncate">{child.menuName}</span>
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </aside>
+                      <section className="flex-1 min-w-0 bg-[#F8FAFC] p-5 overflow-y-auto">
+                        {activeItem ? (
+                          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs min-h-[220px]">
+                            <div className="flex items-center gap-2.5 mb-3">
+                              <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#1e376b] border border-blue-100 flex items-center justify-center">
+                                {renderIconPreview(activeItem, 'w-4.5 h-4.5')}
+                              </div>
+                              <div>
+                                <div className="text-sm font-black text-slate-900">{activeItem.menuName}</div>
+                                <div className="text-[11px] text-slate-400 font-mono">
+                                  {activeItem.routePath || '未配置路由'}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-xs text-slate-500 leading-relaxed">
+                              {activeParent && activeParent.id !== activeItem.id && (
+                                <span>上级：{activeParent.menuName} · </span>
+                              )}
+                              {activeItem.moduleKey ? `已关联组件 ${activeItem.moduleKey}` : '纯分类目录 / 未关联组件'}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-400">请选择左侧菜单查看内容</div>
+                        )}
+                      </section>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

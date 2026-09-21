@@ -322,9 +322,6 @@ export const CustomerAppConfig: React.FC<CustomerAppConfigProps> = ({
               <span className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                 {customer.orgShortName || customer.orgName}
               </span>
-              <span className="text-xs font-mono font-bold text-slate-400">
-                ({customer.orgCode})
-              </span>
               <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
                 customer.version === '正式版'
                   ? 'bg-purple-50 text-purple-700 border-purple-200'
@@ -343,10 +340,6 @@ export const CustomerAppConfig: React.FC<CustomerAppConfigProps> = ({
                   已关停
                 </span>
               )}
-            </div>
-
-            <div className="text-xs text-slate-600 font-medium">
-              {customer.orgName}
             </div>
 
             <div className="flex items-center gap-4 text-xs text-slate-500 font-mono mt-0.5 flex-wrap">

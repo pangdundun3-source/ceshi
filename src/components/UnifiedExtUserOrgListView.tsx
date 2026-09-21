@@ -378,7 +378,7 @@ export const UnifiedExtUserOrgListView: React.FC = () => {
             <nav className="flex items-center gap-1.5 text-xs font-mono select-none" aria-label="Breadcrumb">
               <span className="text-slate-400 font-normal">V8应用集成管理中心</span>
               <span className="text-slate-400 font-normal">/</span>
-              <span className="text-slate-400 font-normal">各应用统一调用组件</span>
+              <span className="text-slate-400 font-normal">统一组件库管理</span>
               <span className="text-slate-400 font-normal">/</span>
               <span className="text-slate-600 font-medium">外部用户组织列表</span>
             </nav>

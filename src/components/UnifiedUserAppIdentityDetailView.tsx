@@ -25,7 +25,7 @@ export const UnifiedUserAppIdentityDetailView: React.FC<UnifiedUserAppIdentityDe
   appsList = INITIAL_APPS,
   sharedAppAccounts,
   onSharedAppAccountsChange,
-  breadcrumbs = ['各应用统一调用组件', '用户应用身份详情']
+  breadcrumbs = ['统一组件库管理', '用户应用身份详情']
 }) => {
   const accounts = sharedAppAccounts || INITIAL_APP_ACCOUNTS;
 

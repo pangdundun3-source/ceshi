@@ -103,9 +103,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Divider: 各应用统一调用组件上方横线 */}
+        {/* Divider: 统一组件库管理上方横线 */}
         <div className="px-3 mt-3 border-t border-[#1e376b]/15 pt-3">
-          {/* 新增主菜单: 各应用统一调用组件 */}
+          {/* 新增主菜单: 统一组件库管理 */}
           <button
             onClick={() => toggleSection('unifiedComponents')}
             className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors ${
@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <span className="flex items-center gap-2">
               <Boxes className="w-4 h-4 text-[#1e376b]" />
-              <span>各应用统一调用组件</span>
+              <span className="whitespace-nowrap">统一组件库管理</span>
             </span>
             {openSections.unifiedComponents ? <ChevronUp className="w-3.5 h-3.5 text-[#1e376b]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#1e376b]" />}
           </button>
@@ -149,9 +149,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Divider 2: 主体维护日志上方的横线 */}
+        {/* Divider 2: 系统日志上方的横线 */}
         <div className="px-3 mt-3 border-t border-[#1e376b]/15 pt-3">
-          {/* 保留板块 2: 主体维护日志 */}
+          {/* 保留板块 2: 系统日志 */}
           <button
             onClick={() => setCurrentMenu(MenuItem.EntityLog)}
             className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${
@@ -162,7 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             id="menu_entity_log"
           >
             <Database className="w-4 h-4 text-[#1e376b]" />
-            <span>主体维护日志</span>
+            <span>系统日志</span>
           </button>
         </div>
 

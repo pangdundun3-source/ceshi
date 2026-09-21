@@ -22,7 +22,7 @@ export interface MTCustomerOrgListViewProps {
  * - 页面标题：客户机构列表
  * - 页面描述：所有已开通指令流转中心应用的客户机构的清单
  * 共用主内容：
- * - 直接引用“各应用统一调用组件”下的“客户机构”页面代码，完全共用底层数据、交互与组件实现。
+ * - 直接引用“统一组件库管理”下的“客户机构”页面代码，完全共用底层数据、交互与组件实现。
  */
 export const MTCustomerOrgListView: React.FC<MTCustomerOrgListViewProps> = ({
   currentApp,
