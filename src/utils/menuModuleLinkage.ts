@@ -39,7 +39,7 @@ const UNIFIED_MODULE_META_MAP: Record<string, Partial<ModuleMenuMeta>> = {
     defaultParentId: 'm_dt_scheme',
   },
   submenu_unified_instruction_flow: {
-    name: '指令流转',
+    name: '流程配置',
     code: 'MOD_INST_FLOW',
     route: '/unified/instruction-flow',
     icon: 'CheckSquare',

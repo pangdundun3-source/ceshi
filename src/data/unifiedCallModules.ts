@@ -19,6 +19,13 @@ export const UNIFIED_CALL_MODULES: UnifiedCallModule[] = [
     id: 'submenu_unified_template_config',
   },
   {
+    menu: MenuItem.UnifiedInstructionFlow,
+    title: '流程配置',
+    kernel: '业务核',
+    description: '配置指令流转流程节点、签收与闭环规则',
+    id: 'submenu_unified_instruction_flow',
+  },
+  {
     menu: MenuItem.UnifiedTemplateReport,
     title: '模板上报',
     kernel: '业务核',
@@ -31,13 +38,6 @@ export const UNIFIED_CALL_MODULES: UnifiedCallModule[] = [
     kernel: '业务核',
     description: '按模板把任务发到下级',
     id: 'submenu_unified_template_dispatch',
-  },
-  {
-    menu: MenuItem.UnifiedInstructionFlow,
-    title: '指令流转',
-    kernel: '业务核',
-    description: '指令下达、签收、反馈、闭环',
-    id: 'submenu_unified_instruction_flow',
   },
   {
     menu: MenuItem.UnifiedOrgStructure,

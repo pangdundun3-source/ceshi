@@ -1,6 +1,9 @@
 import React from 'react';
 import { Boxes, Layers, Users, KeyRound } from 'lucide-react';
 import { UnifiedCallModule, UnifiedKernel } from '../data/unifiedCallModules';
+import { MenuItem } from '../types';
+import { TemplateDesigner } from './TemplateDesigner';
+import { FlowDesigner } from './FlowDesigner';
 
 interface UnifiedCallModuleViewProps {
   module: UnifiedCallModule;
@@ -32,6 +35,9 @@ const kernelIcon: Record<UnifiedKernel, React.ReactNode> = {
 
 export const UnifiedCallModuleView: React.FC<UnifiedCallModuleViewProps> = ({ module }) => {
   const style = kernelStyle[module.kernel];
+  const isTemplateConfig = module.menu === MenuItem.UnifiedTemplateConfig;
+  const isFlowConfig = module.menu === MenuItem.UnifiedInstructionFlow;
+  const hasDesigner = isTemplateConfig || isFlowConfig;
 
   return (
     <div
@@ -66,8 +72,8 @@ export const UnifiedCallModuleView: React.FC<UnifiedCallModuleViewProps> = ({ mo
           </div>
         </div>
 
-        <div className="px-5 pb-5">
-          <div className={`bg-gradient-to-br ${style.panel} rounded-xl border p-8 min-h-[420px] shadow-2xs flex flex-col gap-6`}>
+        <div className="px-5 pb-5 flex flex-col gap-4">
+          <div className={`bg-gradient-to-br ${style.panel} rounded-xl border p-8 shadow-2xs flex flex-col gap-6 ${hasDesigner ? '' : 'min-h-[420px]'}`}>
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 text-[#1e376b] flex items-center justify-center shadow-sm shrink-0">
                 {kernelIcon[module.kernel]}
@@ -75,7 +81,9 @@ export const UnifiedCallModuleView: React.FC<UnifiedCallModuleViewProps> = ({ mo
               <div>
                 <div className="flex items-center gap-2">
                   <Boxes className="w-4 h-4 text-[#1e376b]" />
-                  <span className="text-sm font-bold text-slate-900">统一调用组件</span>
+                  <span className="text-sm font-bold text-slate-900">
+                    {isTemplateConfig ? '模板设计器 · V2.1' : isFlowConfig ? '流程设计器 · V3.0' : '统一调用组件'}
+                  </span>
                 </div>
                 <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">{module.description}</p>
               </div>
@@ -96,6 +104,8 @@ export const UnifiedCallModuleView: React.FC<UnifiedCallModuleViewProps> = ({ mo
               </div>
             </div>
           </div>
+          {isTemplateConfig && <TemplateDesigner />}
+          {isFlowConfig && <FlowDesigner />}
         </div>
       </div>
     </div>

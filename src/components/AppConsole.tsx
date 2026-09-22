@@ -51,11 +51,15 @@ import {
   QrCode,
   Eye,
   EyeOff,
+  FileCode,
+  GitBranch,
 } from 'lucide-react';
 import { SysMenuItem, INITIAL_DITING_MENUS, AvailableComponentOption } from './MenuManage';
 import { MenuManage } from './MenuManage';
 import { EndpointMenuCardPreview, EndpointMenuPreviewModal } from './EndpointMenuPreview';
 import { UNIFIED_CALL_MODULES, getUnifiedModuleByKey } from '../data/unifiedCallModules';
+import { ProductRolePermissionPanel } from './ProductRolePermissionPanel';
+import { ProductBizAssetPanel } from './ProductBizAssetPanel';
 import {
   syncEndpointMenus,
   getModuleMenuItemId,
@@ -83,6 +87,7 @@ export type ConsolePane =
   | 'basic'
   | 'endpoints'
   | 'components'
+  | 'otherBusiness'
   | 'menus'
   | 'publish';
 
@@ -106,6 +111,20 @@ const NAV: Array<{ id: ConsolePane; label: string; icon: React.ElementType }> = 
   { id: 'endpoints', label: '访问端管理', icon: Monitor },
   { id: 'menus', label: '菜单配置', icon: LayoutList },
   { id: 'components', label: '组件库管理', icon: Library },
+  { id: 'otherBusiness', label: '其他业务配置', icon: Layers },
+];
+
+type OtherBusinessSubTab = 'template' | 'flow' | 'role';
+
+const OTHER_BUSINESS_NAV: Array<{
+  id: OtherBusinessSubTab;
+  label: string;
+  icon: React.ElementType;
+  description: string;
+}> = [
+  { id: 'role', label: '角色权限', icon: ShieldCheck, description: '在骨架内给角色勾模块' },
+  { id: 'template', label: '模板配置', icon: FileCode, description: '设计上报/下发用的表单模板' },
+  { id: 'flow', label: '流程配置', icon: GitBranch, description: '配置指令流转流程节点、签收与闭环规则' },
 ];
 
 const epKindIconMap: Record<string, React.ElementType> = {
@@ -144,6 +163,7 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
   const [basicSubTab, setBasicSubTab] = useState<'basic_info' | 'wechat_official' | 'app_publish'>(
     initialPane === 'publish' ? 'app_publish' : 'basic_info'
   );
+  const [otherBusinessSubTab, setOtherBusinessSubTab] = useState<OtherBusinessSubTab>('role');
 
   useEffect(() => {
     if (pane === 'publish') {
@@ -2855,6 +2875,51 @@ export const AppConsole: React.FC<AppConsoleProps> = ({
                   <span>可尝试切换筛选标签（全部 / 已绑定 / 未接入）、调整内核选项或清空搜索关键字</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB: 其他业务配置（组件库管理后）— 左侧子导航：模板配置 / 流程配置 / 角色权限 */}
+          {pane === 'otherBusiness' && (
+            <div
+              className="bg-white rounded-xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col md:flex-row flex-1 min-h-[620px] overflow-hidden"
+              id="console_other_business_card"
+            >
+              <div className="w-full md:w-40 lg:w-44 bg-white md:border-r border-b md:border-b-0 border-slate-200/80 shrink-0 flex flex-col">
+                <div className="px-3.5 py-3 border-b border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-400 tracking-wide">业务配置</div>
+                </div>
+                <nav className="flex-1 divide-y divide-slate-100" id="nav_console_other_business_submenu">
+                  {OTHER_BUSINESS_NAV.map((item) => {
+                    const Icon = item.icon;
+                    const active = otherBusinessSubTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setOtherBusinessSubTab(item.id)}
+                        id={`console_submenu_other_${item.id}`}
+                        title={item.description}
+                        className={`w-full px-3.5 py-3.5 flex items-center text-left transition-all cursor-pointer select-none text-xs ${
+                          active
+                            ? 'bg-white text-[#1e376b] font-bold border-l-4 border-[#1e376b]'
+                            : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50/70 border-l-4 border-transparent font-medium'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#1e376b]' : 'text-slate-500'}`} />
+                          <span className="whitespace-nowrap">{item.label}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              <div className="flex-1 min-w-0 overflow-y-auto bg-[#F4F7FB] p-5">
+                {otherBusinessSubTab === 'role' && <ProductRolePermissionPanel />}
+                {otherBusinessSubTab === 'template' && <ProductBizAssetPanel kind="template" />}
+                {otherBusinessSubTab === 'flow' && <ProductBizAssetPanel kind="flow" />}
+              </div>
             </div>
           )}
 
